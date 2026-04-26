@@ -1,0 +1,58 @@
+# --- Dependencies ---
+node_modules/
+.pnp
+.pnp.js
+
+# --- Expo ---
+.expo/
+.expo-shared/
+dist/
+web-build/
+expo-env.d.ts
+
+# --- EAS ---
+.easignore
+play-service-account.json
+*.jks
+*.keystore
+
+# --- iOS native (if you ever `expo prebuild`) ---
+ios/Pods/
+ios/build/
+ios/.xcode.env.local
+ios/*.xcworkspace/xcuserdata/
+*.ipa
+*.p8
+*.p12
+*.mobileprovision
+
+# --- Android native (if you ever `expo prebuild`) ---
+android/.gradle/
+android/build/
+android/app/build/
+android/app/release/
+android/local.properties
+*.apk
+*.aab
+
+# --- Env (never commit) ---
+.env
+.env.*.local
+.env.local
+
+# --- Logs / debug ---
+npm-debug.*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# --- Editors / OS ---
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.iml
+.DS_Store
+*.orig.*
+
+# --- TypeScript ---
+*.tsbuildinfo
