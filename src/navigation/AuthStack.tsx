@@ -1,19 +1,21 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "./types";
 import { SplashScreen } from "../screens/auth/SplashScreen";
-import { PhoneEntryScreen } from "../screens/auth/PhoneEntryScreen";
-import { OtpVerifyScreen } from "../screens/auth/OtpVerifyScreen";
-import { OnboardingScreen } from "../screens/auth/OnboardingScreen";
+import { WelcomeScreen } from "../screens/auth/WelcomeScreen";
+import { EmailPasswordScreen } from "../screens/auth/EmailPasswordScreen";
+import { env } from "../lib/env";
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 
 export function AuthStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Splash"     component={SplashScreen}     />
-      <Stack.Screen name="PhoneEntry" component={PhoneEntryScreen} />
-      <Stack.Screen name="OtpVerify"  component={OtpVerifyScreen}  />
-      <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+    <Stack.Navigator
+      initialRouteName={env.AUTH_INITIAL_ROUTE}
+      screenOptions={{ headerShown: false }}
+    >
+      <Stack.Screen name="Splash"        component={SplashScreen}        />
+      <Stack.Screen name="Welcome"       component={WelcomeScreen}       />
+      <Stack.Screen name="EmailPassword" component={EmailPasswordScreen} />
     </Stack.Navigator>
   );
 }

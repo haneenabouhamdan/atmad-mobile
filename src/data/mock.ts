@@ -1,4 +1,4 @@
-import type { Article, Brand, Deal, WalletCard } from "./types";
+import type { Article, Brand, Deal, Influencer, WalletCard } from "./types";
 
 /**
  * Fallback mock data shown when Sanity is not yet configured.
@@ -16,6 +16,7 @@ export const mockArticles: Article[] = [
     body: "In a world saturated with noise, the most powerful influencers have mastered the art of restraint. The new luxury is not about visibility — it is about selectivity. Those who curate rather than accumulate define the new aesthetic order.",
     author: "ELENA VASQUEZ",
     readTime: "6 MIN READ",
+    influencerSlug: "elena-vasquez",
     deal: {
       id: "d1",
       brand: "MAISON NOIR",
@@ -25,8 +26,9 @@ export const mockArticles: Article[] = [
       points: 350,
       expiry: "Valid through April 2026",
       category: "Fashion",
-      terms: "Exclusive to Obsidian Tier members. One use per account.",
-    },
+    terms: "Exclusive to Obsidian Tier members. One use per account.",
+    affiliateUrl: "https://www.atmad.example/partners/maison-noir",
+  },
   },
   {
     id: "2",
@@ -130,6 +132,73 @@ export const mockBrands: Brand[] = [
     ],
   },
 ];
+
+/** v17-style influencer slugs — aligned with Discovery `routeParam` where present. */
+export const mockInfluencers: Record<string, Influencer> = {
+  "elena-vasquez": {
+    slug: "elena-vasquez",
+    name: "Elena Vasquez",
+    role: "Creative Director · Architect of Influence",
+    imageUrl:
+      "https://images.unsplash.com/photo-1618362429894-235528bbb226?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=800",
+    quote: "I don't sell products. I exist inside experiences.",
+    subQuote:
+      "On the architecture of modern influence, the ethics of visibility, and why the most powerful statement is often a deliberate silence.",
+    issues: 4,
+    points: 1200,
+    featureHeadline: "The Architecture of Influence",
+    featurePreview:
+      "In a world saturated with noise, the most powerful influencers have mastered the art of restraint.",
+    collabs: [
+      { brand: "Maison Noir", note: "Obsidian Collection", brandSlug: "maison-noir" },
+      { brand: "Archive Atelier", note: "Wardrobe curation", brandSlug: "archive-atelier" },
+    ],
+    videos: [
+      { title: "Quiet Luxury Editorial", type: "editorial", duration: "02:14", linkedCouponCode: "ATMAD-NOIR-2026" },
+    ],
+  },
+  "margaux-delacroix": {
+    slug: "margaux-delacroix",
+    name: "Margaux Delacroix",
+    role: "Beauty Curator · Formulation Philosopher",
+    imageUrl:
+      "https://images.unsplash.com/photo-1692611894076-9f8aac7b1b4a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=800",
+    quote: "Beauty is not a product category. It is an epistemology.",
+    subQuote:
+      "On the science of skin, the ritual of conscious luxury, and why the most sophisticated beauty routine begins with refusal.",
+    issues: 2,
+    points: 680,
+    featureHeadline: "The New Language of Skin",
+    featurePreview:
+      "The most sophisticated beauty routines are built not around products, but around philosophy.",
+    collabs: [
+      { brand: "Lumière Labs", note: "Skin science partnership", brandSlug: "lumiere-labs" },
+    ],
+    videos: [
+      { title: "GRWM · Conscious Skin", type: "grwm", duration: "04:02", linkedCouponCode: "LUM-PRIV-9201" },
+    ],
+  },
+  "ines-beaumont": {
+    slug: "ines-beaumont",
+    name: "Ines Beaumont",
+    role: "Fashion Editor · Archive Voice",
+    imageUrl:
+      "https://images.unsplash.com/photo-1717764488252-71702b7acf7d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=800",
+    quote: "Dress for the archive, not the room.",
+    subQuote: "On conviction, tailoring, and the women who stopped asking permission.",
+    issues: 3,
+    points: 920,
+    featureHeadline: "Dressed in Conviction",
+    featurePreview:
+      "For a generation raised on algorithmic validation, true confidence has become the rarest luxury.",
+    collabs: [
+      { brand: "Archive Atelier", note: "Styling sessions", brandSlug: "archive-atelier" },
+    ],
+    videos: [
+      { title: "Archive Session", type: "collab", duration: "03:40", linkedCouponCode: "ARCH-VIP-0344" },
+    ],
+  },
+};
 
 export const mockWallet: WalletCard[] = [
   {

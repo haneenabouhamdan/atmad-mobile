@@ -7,7 +7,9 @@ import { useFonts as usePlayfair, PlayfairDisplay_500Medium, PlayfairDisplay_500
 import { Inter_300Light, Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from "@expo-google-fonts/inter";
 
 import { AuthProvider } from "./src/auth/AuthProvider";
+import { EngagementSync } from "./src/components/EngagementSync";
 import { RootNavigator } from "./src/navigation/RootNavigator";
+import { ToastProvider } from "./src/components/Toast";
 import { colors } from "./src/theme/tokens";
 
 export default function App() {
@@ -31,10 +33,13 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <AuthProvider>
-          <RootNavigator />
-          <StatusBar style="dark" />
-        </AuthProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <EngagementSync />
+            <RootNavigator />
+            <StatusBar style="dark" />
+          </AuthProvider>
+        </ToastProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

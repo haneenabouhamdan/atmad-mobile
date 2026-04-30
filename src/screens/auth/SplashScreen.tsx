@@ -3,40 +3,40 @@ import { Text, View, ActivityIndicator } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "../../navigation/types";
-import { authenticateWithBiometrics, isBiometricSupported } from "../../auth/biometrics";
-import { useAuth } from "../../auth/AuthProvider";
 import { env } from "../../lib/env";
 import { colors, fonts, spacing } from "../../theme/tokens";
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, "Splash">;
 
+/**
+ * Branded intro when `AUTH_INITIAL_ROUTE=Splash`. We only render this stack while
+ * logged out (`RootNavigator`), so there is never a persisted session here — biometrics / unlock
+ * run from `MainTabs`, not Splash.
+ */
 export function SplashScreen() {
-  const nav  = useNavigation<Nav>();
-  const auth = useAuth();
+  const nav = useNavigation<Nav>();
 
   useEffect(() => {
     let cancelled = false;
     if (!env.IS_CONFIGURED) return;
-    (async () => {
-      if (auth.loading) return;
 
-      if (auth.session) {
-        const { supported, enrolled } = await isBiometricSupported();
-        if (supported && enrolled) {
-          const r = await authenticateWithBiometrics("Unlock ATMAD");
-          if (cancelled) return;
-          if (!r.success) {
-            await auth.signOut();
-            nav.replace("PhoneEntry");
-            return;
-          }
-        }
-      } else {
-        nav.replace("PhoneEntry");
-      }
+    const startedAt = Date.now();
+
+    async function delayRemainderSplash(): Promise<void> {
+      const rem = env.SPLASH_MIN_MS - (Date.now() - startedAt);
+      if (cancelled || rem <= 0) return;
+      await new Promise<void>((resolve) => setTimeout(resolve, rem));
+    }
+
+    void (async () => {
+      await delayRemainderSplash();
+      if (!cancelled) nav.replace("Welcome");
     })();
-    return () => { cancelled = true; };
-  }, [auth.loading, auth.session]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [nav]);
 
   return (
     <View style={{

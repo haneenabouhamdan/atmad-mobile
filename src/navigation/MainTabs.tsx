@@ -1,6 +1,7 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Text, View } from "react-native";
+import { Feather } from "@expo/vector-icons";
 import type {
   ExploreStackParamList,
   HomeStackParamList,
@@ -12,12 +13,35 @@ import type {
 import { HomeScreen } from "../screens/home/HomeScreen";
 import { CoverScreen } from "../screens/issue/CoverScreen";
 import { MagazineFeedScreen } from "../screens/issue/MagazineFeedScreen";
+import { ArticleScreen } from "../screens/issue/ArticleScreen";
 import { WalletScreen } from "../screens/wallet/WalletScreen";
 import { DealActivationScreen } from "../screens/wallet/DealActivationScreen";
 import { CouponVaultScreen } from "../screens/vault/CouponVaultScreen";
+import { DiscoveryScreen } from "../screens/explore/DiscoveryScreen";
 import { ProfileScreen } from "../screens/profile/ProfileScreen";
-import { makePlaceholder } from "../screens/_Placeholder";
+import { EditProfileScreen } from "../screens/profile/EditProfileScreen";
+import { QRScannerScreen } from "../screens/profile/QRScannerScreen";
+import { BarcodeScreen } from "../screens/profile/BarcodeScreen";
+import { InStoreScreen } from "../screens/profile/InStoreScreen";
+import { CompareScreen } from "../screens/profile/CompareScreen";
+import { ReviewsScreen } from "../screens/profile/ReviewsScreen";
+import { MindLoungeScreen } from "../screens/profile/MindLoungeScreen";
+import { IdentityVaultScreen } from "../screens/profile/IdentityVaultScreen";
+import { NotificationsScreen } from "../screens/profile/NotificationsScreen";
+import { ReferralScreen } from "../screens/profile/ReferralScreen";
+import { PINScreen } from "../screens/profile/PINScreen";
+import { MyLeadsScreen } from "../screens/profile/MyLeadsScreen";
+import { ToolsHubScreen } from "../screens/profile/ToolsHubScreen";
+import { ListingDetailScreen } from "../screens/listing/ListingDetail";
+import { CategoryListingsScreen } from "../screens/listing/CategoryListings";
+import { BrandCampaignScreen } from "../screens/explore/BrandCampaignScreen";
+import { InfluencerFeatureScreen } from "../screens/explore/InfluencerFeatureScreen";
+import { LifestyleScreen } from "../screens/explore/LifestyleScreen";
+import { AutomotiveCampaignScreen } from "../screens/explore/AutomotiveCampaignScreen";
 import { colors, fonts } from "../theme/tokens";
+import { SignupPhoneReminder } from "./SignupPhoneReminder";
+import { PhoneEntryScreen } from "../screens/auth/PhoneEntryScreen";
+import { OtpVerifyScreen } from "../screens/auth/OtpVerifyScreen";
 
 // ── Per-tab stacks ─────────────────────────────────────────────────────
 const HomeStackNav = createNativeStackNavigator<HomeStackParamList>();
@@ -25,8 +49,8 @@ function HomeStack() {
   return (
     <HomeStackNav.Navigator screenOptions={{ headerShown: false }}>
       <HomeStackNav.Screen name="Home"          component={HomeScreen} />
-      <HomeStackNav.Screen name="Notifications" component={makePlaceholder("Notifications")} />
-      <HomeStackNav.Screen name="Identity"      component={makePlaceholder("Identity Vault")} />
+      <HomeStackNav.Screen name="Notifications" component={NotificationsScreen} />
+      <HomeStackNav.Screen name="Identity"      component={IdentityVaultScreen} />
     </HomeStackNav.Navigator>
   );
 }
@@ -37,7 +61,8 @@ function IssueStack() {
     <IssueStackNav.Navigator screenOptions={{ headerShown: false }} initialRouteName="Cover">
       <IssueStackNav.Screen name="Cover"   component={CoverScreen} />
       <IssueStackNav.Screen name="Feed"    component={MagazineFeedScreen} />
-      <IssueStackNav.Screen name="Article" component={makePlaceholder("Article")} />
+      <IssueStackNav.Screen name="Article" component={ArticleScreen} />
+      <IssueStackNav.Screen name="Listing" component={ListingDetailScreen} />
     </IssueStackNav.Navigator>
   );
 }
@@ -46,11 +71,13 @@ const ExploreStackNav = createNativeStackNavigator<ExploreStackParamList>();
 function ExploreStack() {
   return (
     <ExploreStackNav.Navigator screenOptions={{ headerShown: false }}>
-      <ExploreStackNav.Screen name="Discovery"  component={makePlaceholder("Discovery", "Curated")} />
-      <ExploreStackNav.Screen name="Brand"      component={makePlaceholder("Brand")} />
-      <ExploreStackNav.Screen name="Influencer" component={makePlaceholder("Influencer")} />
-      <ExploreStackNav.Screen name="Lifestyle"  component={makePlaceholder("Lifestyle")} />
-      <ExploreStackNav.Screen name="Automotive" component={makePlaceholder("Automotive")} />
+      <ExploreStackNav.Screen name="Discovery"        component={DiscoveryScreen} />
+      <ExploreStackNav.Screen name="Brand"            component={BrandCampaignScreen} />
+      <ExploreStackNav.Screen name="Influencer"       component={InfluencerFeatureScreen} />
+      <ExploreStackNav.Screen name="Lifestyle"        component={LifestyleScreen} />
+      <ExploreStackNav.Screen name="Automotive"       component={AutomotiveCampaignScreen} />
+      <ExploreStackNav.Screen name="CategoryListings" component={CategoryListingsScreen} />
+      <ExploreStackNav.Screen name="Listing"          component={ListingDetailScreen} />
     </ExploreStackNav.Navigator>
   );
 }
@@ -62,7 +89,7 @@ function WalletStack() {
       <WalletStackNav.Screen name="Wallet"  component={WalletScreen} />
       <WalletStackNav.Screen name="Vault"   component={CouponVaultScreen} />
       <WalletStackNav.Screen name="Deal"    component={DealActivationScreen} />
-      <WalletStackNav.Screen name="InStore" component={makePlaceholder("In-Store")} />
+      <WalletStackNav.Screen name="InStore" component={InStoreScreen} />
     </WalletStackNav.Navigator>
   );
 }
@@ -72,16 +99,21 @@ function ProfileStack() {
   return (
     <ProfileStackNav.Navigator screenOptions={{ headerShown: false }}>
       <ProfileStackNav.Screen name="Profile"       component={ProfileScreen} />
-      <ProfileStackNav.Screen name="QR"            component={makePlaceholder("QR Scanner")} />
-      <ProfileStackNav.Screen name="Barcode"       component={makePlaceholder("Barcode Scanner")} />
-      <ProfileStackNav.Screen name="InStore"       component={makePlaceholder("In-Store Mode")} />
-      <ProfileStackNav.Screen name="Compare"       component={makePlaceholder("Compare")} />
-      <ProfileStackNav.Screen name="Reviews"       component={makePlaceholder("Reviews")} />
-      <ProfileStackNav.Screen name="MindLounge"    component={makePlaceholder("Mind Lounge")} />
-      <ProfileStackNav.Screen name="Identity"      component={makePlaceholder("Identity Vault")} />
-      <ProfileStackNav.Screen name="Notifications" component={makePlaceholder("Notifications")} />
-      <ProfileStackNav.Screen name="Referral"      component={makePlaceholder("Referral")} />
-      <ProfileStackNav.Screen name="PIN"           component={makePlaceholder("PIN & Biometrics")} />
+      <ProfileStackNav.Screen name="EditProfile"   component={EditProfileScreen} />
+      <ProfileStackNav.Screen name="QR"            component={QRScannerScreen} />
+      <ProfileStackNav.Screen name="Barcode"       component={BarcodeScreen} />
+      <ProfileStackNav.Screen name="InStore"       component={InStoreScreen} />
+      <ProfileStackNav.Screen name="Compare"       component={CompareScreen} />
+      <ProfileStackNav.Screen name="Reviews"       component={ReviewsScreen} />
+      <ProfileStackNav.Screen name="MindLounge"    component={MindLoungeScreen} />
+      <ProfileStackNav.Screen name="Identity"      component={IdentityVaultScreen} />
+      <ProfileStackNav.Screen name="Notifications" component={NotificationsScreen} />
+      <ProfileStackNav.Screen name="Referral"      component={ReferralScreen} />
+      <ProfileStackNav.Screen name="PIN"           component={PINScreen} />
+      <ProfileStackNav.Screen name="MyLeads"       component={MyLeadsScreen} />
+      <ProfileStackNav.Screen name="ToolsHub"      component={ToolsHubScreen} />
+      <ProfileStackNav.Screen name="PhoneEntry"    component={PhoneEntryScreen} />
+      <ProfileStackNav.Screen name="OtpVerify"       component={OtpVerifyScreen} />
     </ProfileStackNav.Navigator>
   );
 }
@@ -95,14 +127,48 @@ const TAB_LABELS: Record<keyof MainTabParamList, string> = {
   ProfileTab: "Profile",
 };
 
+type FeatherName = React.ComponentProps<typeof Feather>["name"];
+const TAB_ICONS: Record<keyof MainTabParamList, FeatherName> = {
+  IssueTab:   "book-open",
+  ExploreTab: "compass",
+  HomeTab:    "home",
+  WalletTab:  "credit-card",
+  ProfileTab: "user",
+};
+
+// Root screen of each nested stack — used so a tab press always lands on
+// its root, instead of the last sub-screen the user was on.
+const TAB_ROOT: Record<keyof MainTabParamList, string> = {
+  IssueTab:   "Cover",
+  ExploreTab: "Discovery",
+  HomeTab:    "Home",
+  WalletTab:  "Wallet",
+  ProfileTab: "Profile",
+};
+
 const Tabs = createBottomTabNavigator<MainTabParamList>();
 
 export function MainTabs() {
   return (
+    <>
+      <SignupPhoneReminder />
     <Tabs.Navigator
       initialRouteName="HomeTab"
+      screenListeners={({ navigation, route }) => ({
+        tabPress: () => {
+          const root = TAB_ROOT[route.name as keyof MainTabParamList];
+          if (root) {
+            // The strongly-typed navigate signature can't narrow the union of
+            // tab names to its matching params type, so we go through the
+            // looser dispatch API instead. Same end result.
+            (navigation as unknown as { navigate: (n: string, p?: object) => void })
+              .navigate(route.name, { screen: root });
+          }
+        },
+      })}
       screenOptions={({ route }) => {
         const isHome = route.name === "HomeTab";
+        const iconName = TAB_ICONS[route.name as keyof MainTabParamList];
         return {
           headerShown: false,
           tabBarStyle: {
@@ -125,24 +191,31 @@ export function MainTabs() {
           tabBarIcon: ({ focused }) =>
             isHome ? (
               <View style={{
-                width: 44, height: 44, borderRadius: 999,
+                width: 48, height: 48, borderRadius: 999,
                 alignItems: "center", justifyContent: "center",
                 backgroundColor: focused ? colors.foreground : colors.muted,
                 borderWidth: 1,
                 borderColor: focused ? colors.foreground : colors.border,
-                marginTop: -10,
+                marginTop: -12,
+                shadowColor: "#000",
+                shadowOpacity: focused ? 0.18 : 0.06,
+                shadowRadius: 8,
+                shadowOffset: { width: 0, height: 4 },
+                elevation: focused ? 4 : 1,
               }}>
-                <View style={{
-                  width: 6, height: 6, borderRadius: 3,
-                  backgroundColor: focused ? "#FFFFFF" : colors.textTertiary,
-                }} />
+                <Feather
+                  name={iconName}
+                  size={20}
+                  color={focused ? "#FFFFFF" : colors.textTertiary}
+                />
               </View>
             ) : (
-              <View style={{
-                width: 6, height: 6, borderRadius: 3,
-                marginBottom: 4,
-                backgroundColor: focused ? colors.foreground : "transparent",
-              }} />
+              <Feather
+                name={iconName}
+                size={20}
+                color={focused ? colors.foreground : colors.textTertiary}
+                style={{ marginBottom: 2 }}
+              />
             ),
         };
       }}
@@ -153,5 +226,6 @@ export function MainTabs() {
       <Tabs.Screen name="WalletTab"  component={WalletStack} />
       <Tabs.Screen name="ProfileTab" component={ProfileStack} />
     </Tabs.Navigator>
+    </>
   );
 }

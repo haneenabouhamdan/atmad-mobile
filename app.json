@@ -13,7 +13,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#0A0A0A"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.atmad.luxurymagazine",
@@ -30,7 +32,11 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "permissions": ["CAMERA", "USE_BIOMETRIC", "USE_FINGERPRINT"]
+      "permissions": [
+        "CAMERA",
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -40,7 +46,8 @@
       "expo-local-authentication",
       "expo-camera",
       "expo-font",
-      "expo-notifications"
+      "expo-notifications",
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {

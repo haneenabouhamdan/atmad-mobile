@@ -2,9 +2,8 @@ import type { NavigatorScreenParams } from "@react-navigation/native";
 
 export type AuthStackParamList = {
   Splash: undefined;
-  PhoneEntry: undefined;
-  OtpVerify:  { phoneE164: string };
-  Onboarding: undefined;
+  Welcome: undefined;
+  EmailPassword: { mode?: "signup" | "login" };
 };
 
 export type MainTabParamList = {
@@ -24,6 +23,7 @@ export type IssueStackParamList = {
   Cover: undefined;
   Feed:  undefined;
   Article: { id: string };
+  Listing: { id: string };
 };
 export type ExploreStackParamList = {
   Discovery:  undefined;
@@ -31,6 +31,10 @@ export type ExploreStackParamList = {
   Influencer: { slug: string };
   Lifestyle:  undefined;
   Automotive: undefined;
+  Listing:    { id: string };
+  CategoryListings: { category:
+    | "fashion" | "tech" | "travel" | "automotive"
+    | "finance" | "fnb"  | "beauty" | "realestate" };
 };
 export type WalletStackParamList = {
   Wallet:  undefined;
@@ -40,6 +44,10 @@ export type WalletStackParamList = {
 };
 export type ProfileStackParamList = {
   Profile:       undefined;
+  /** After email/OAuth signup, `openPhoneReminder` opens the add-phone banner once. */
+  EditProfile:   { openPhoneReminder?: boolean } | undefined;
+  PhoneEntry:    { mode?: "signup" | "login" };
+  OtpVerify:     { phoneE164: string; channel: "sms" | "whatsapp"; email?: string };
   QR:            undefined;
   Barcode:       undefined;
   InStore:       undefined;
@@ -50,6 +58,8 @@ export type ProfileStackParamList = {
   Notifications: undefined;
   Referral:      undefined;
   PIN:           undefined;
+  MyLeads:       undefined;
+  ToolsHub:      undefined;
 };
 
 export type RootStackParamList = {

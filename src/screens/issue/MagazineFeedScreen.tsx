@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -16,11 +16,13 @@ import { fetchArticles } from "../../data/contentService";
 import type { Article } from "../../data/types";
 import { env } from "../../lib/env";
 import { colors, fonts, radius, spacing } from "../../theme/tokens";
+import { useHomeIntelligenceStore } from "../../store/homeIntelligenceStore";
 
 type Nav = NativeStackNavigationProp<IssueStackParamList, "Feed">;
 
 export function MagazineFeedScreen() {
   const nav = useNavigation<Nav>();
+  const followedSlugs = useHomeIntelligenceStore((s) => s.followedInfluencerSlugs);
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading]   = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -31,6 +33,16 @@ export function MagazineFeedScreen() {
     setLoading(false);
     setRefreshing(false);
   }
+
+  const sortedArticles = useMemo(() => {
+    if (followedSlugs.length === 0) return articles;
+    const followed = new Set(followedSlugs);
+    return [...articles].sort((a, b) => {
+      const pa = a.influencerSlug && followed.has(a.influencerSlug) ? 0 : 1;
+      const pb = b.influencerSlug && followed.has(b.influencerSlug) ? 0 : 1;
+      return pa - pb;
+    });
+  }, [articles, followedSlugs]);
 
   useEffect(() => { load(); }, []);
 
@@ -56,7 +68,7 @@ export function MagazineFeedScreen() {
         </View>
       ) : (
         <FlatList
-          data={articles}
+          data={sortedArticles}
           keyExtractor={(a) => a.id}
           contentContainerStyle={{ padding: spacing.xl, paddingTop: 0, paddingBottom: 120 }}
           ItemSeparatorComponent={() => <View style={{ height: spacing.xl }} />}
@@ -68,22 +80,48 @@ export function MagazineFeedScreen() {
             />
           }
           ListHeaderComponent={
-            !env.IS_CONFIGURED ? (
-              <View style={{
-                marginBottom: spacing.lg,
-                padding: spacing.md,
-                borderRadius: radius.md,
-                backgroundColor: colors.card,
-                borderWidth: 1, borderColor: colors.border,
-              }}>
-                <Text style={{
-                  fontFamily: fonts.bodyLight, fontSize: 11,
-                  color: colors.textSecondary, lineHeight: 16,
+            <View style={{ marginBottom: spacing.lg, gap: spacing.md }}>
+              {followedSlugs.length > 0 ? (
+                <View style={{
+                  paddingVertical: spacing.sm,
+                  paddingHorizontal: spacing.md,
+                  borderRadius: radius.pill,
+                  alignSelf: "flex-start",
+                  backgroundColor: "rgba(10,10,10,0.06)",
+                  borderWidth: 1,
+                  borderColor: colors.border,
                 }}>
-                  Showing sample issue. Connect Sanity to publish live content.
-                </Text>
-              </View>
-            ) : null
+                  <Text style={{
+                    fontFamily: fonts.body, fontSize: 9, letterSpacing: 2,
+                    color: colors.textSecondary, textTransform: "uppercase",
+                  }}>
+                    From voices you follow
+                  </Text>
+                  <Text style={{
+                    marginTop: 4,
+                    fontFamily: fonts.bodyLight, fontSize: 10,
+                    color: colors.textTertiary, lineHeight: 15,
+                  }}>
+                    Linked stories from those creators are shown first.
+                  </Text>
+                </View>
+              ) : null}
+              {!env.IS_CONFIGURED ? (
+                <View style={{
+                  padding: spacing.md,
+                  borderRadius: radius.md,
+                  backgroundColor: colors.card,
+                  borderWidth: 1, borderColor: colors.border,
+                }}>
+                  <Text style={{
+                    fontFamily: fonts.bodyLight, fontSize: 11,
+                    color: colors.textSecondary, lineHeight: 16,
+                  }}>
+                    Showing sample issue. Connect Sanity to publish live content.
+                  </Text>
+                </View>
+              ) : null}
+            </View>
           }
           renderItem={({ item }) => (
             <Pressable
