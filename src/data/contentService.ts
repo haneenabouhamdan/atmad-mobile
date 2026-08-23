@@ -22,6 +22,8 @@ export async function fetchArticles(
       `*[_type == "article"] | order(publishedAt desc) {
         _id, headline, subheadline, type, category, author, readTime,
         coverImage, body, linkedDealCode,
+        videoUrl,
+        "videoAssetUrl": video.asset->url,
         "influencerSlug": influencer->slug.current
       }`,
     );
@@ -39,6 +41,12 @@ export async function fetchArticles(
         typeof r.influencerSlug === "string" && r.influencerSlug
           ? r.influencerSlug
           : undefined,
+      videoUrl:
+        typeof r.videoUrl === "string" && r.videoUrl.trim()
+          ? r.videoUrl.trim()
+          : typeof r.videoAssetUrl === "string" && r.videoAssetUrl.trim()
+            ? r.videoAssetUrl.trim()
+            : undefined,
     }));
   } catch (e) {
     console.warn("Sanity articles fetch failed, falling back to mock:", e);

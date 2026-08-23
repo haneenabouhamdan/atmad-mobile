@@ -7,7 +7,7 @@ export type AuthStackParamList = {
 };
 
 export type MainTabParamList = {
-  IssueTab:   NavigatorScreenParams<IssueStackParamList>;
+  DiscoverTab: NavigatorScreenParams<DiscoverStackParamList>;
   ExploreTab: NavigatorScreenParams<ExploreStackParamList>;
   HomeTab:    NavigatorScreenParams<HomeStackParamList>;
   WalletTab:  NavigatorScreenParams<WalletStackParamList>;
@@ -19,10 +19,10 @@ export type HomeStackParamList = {
   Notifications: undefined;
   Identity: undefined;
 };
-export type IssueStackParamList = {
+export type DiscoverStackParamList = {
   Cover: undefined;
   Feed:  undefined;
-  Article: { id: string };
+  Article: { id: string; fromExplore?: boolean };
   Listing: { id: string };
 };
 export type ExploreStackParamList = {

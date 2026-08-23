@@ -48,6 +48,7 @@ export function CountryCodePicker({
 }: Props) {
   const [open, setOpen] = useState(false);
   const isMarket = summary === "market";
+  const isCompactHeaderMarket = placement === "headerRight" && isMarket;
 
   const a11yLabel =
     summary === "market"
@@ -73,13 +74,12 @@ export function CountryCodePicker({
           flexDirection: "row",
           alignItems: "center",
           backgroundColor: colors.card,
-          borderRadius: radius.md,
+          borderRadius: isCompactHeaderMarket ? radius.sm : radius.md,
           borderWidth: 1,
           borderColor: colors.border,
-          paddingHorizontal: spacing.md,
-          paddingVertical:
-            placement === "headerRight" && isMarket ? 10 : 14,
-          gap: summary === "market" ? 8 : 6,
+          paddingHorizontal: isCompactHeaderMarket ? 6 : spacing.md,
+          paddingVertical: isCompactHeaderMarket ? 5 : placement === "headerRight" && isMarket ? 10 : 14,
+          gap: isCompactHeaderMarket ? 4 : summary === "market" ? 8 : 6,
           opacity: pressed ? 0.7 : 1,
           maxWidth: "100%",
           ...(summary === "name" || isMarket
@@ -90,13 +90,13 @@ export function CountryCodePicker({
             : {}),
         })}
       >
-        <Text style={{ fontSize: isMarket ? 20 : 16 }}>{selected.flag}</Text>
+        <Text style={{ fontSize: isCompactHeaderMarket ? 14 : isMarket ? 20 : 16 }}>{selected.flag}</Text>
         <Text
           numberOfLines={summary === "name" ? 2 : 1}
           style={{
             fontFamily: isMarket ? fonts.bodySemi : fonts.body,
-            fontSize: isMarket ? 11 : summary === "name" ? 14 : 13,
-            letterSpacing: isMarket ? 1.5 : 0,
+            fontSize: isCompactHeaderMarket ? 9 : isMarket ? 11 : summary === "name" ? 14 : 13,
+            letterSpacing: isCompactHeaderMarket ? 1 : isMarket ? 1.5 : 0,
             color: colors.foreground,
             flexShrink: 1,
             ...(summary === "name" ? { maxWidth: 280 } : {}),
@@ -104,7 +104,11 @@ export function CountryCodePicker({
         >
           {briefLabel}
         </Text>
-        <Feather name="chevron-down" size={14} color={colors.textTertiary} />
+        <Feather
+          name="chevron-down"
+          size={isCompactHeaderMarket ? 11 : 14}
+          color={colors.textTertiary}
+        />
       </Pressable>
 
       <CountryListModal

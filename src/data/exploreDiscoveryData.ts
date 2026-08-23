@@ -1,5 +1,11 @@
 import type { ListingCategory } from "../lib/listings";
+import type { Article } from "./types";
 import { mockArticles } from "./mock";
+
+export type ExploreEntityAction =
+  | { kind: "copy_code"; code: string }
+  | { kind: "activate"; url: string }
+  | { kind: "get_the_look" };
 
 export type ExploreArticleCard = {
   id: string;
@@ -7,7 +13,22 @@ export type ExploreArticleCard = {
   author: string;
   readTime: string;
   imageUrl: string;
+  action: ExploreEntityAction;
 };
+
+function exploreActionForArticle(a: Article | undefined): ExploreEntityAction {
+  if (!a) return { kind: "get_the_look" };
+  if (a.type === "spread") return { kind: "get_the_look" };
+  if (a.type === "deal_embedded") {
+    const url = a.deal?.affiliateUrl ?? a.partnerUrl;
+    if (url) return { kind: "activate", url };
+  }
+  const code = a.deal?.code?.trim();
+  if (code) return { kind: "copy_code", code };
+  if (a.partnerUrl) return { kind: "activate", url: a.partnerUrl };
+  if (a.deal?.affiliateUrl) return { kind: "activate", url: a.deal.affiliateUrl };
+  return { kind: "get_the_look" };
+}
 
 export type DiscoveryCategory = {
   id: string;
@@ -16,7 +37,7 @@ export type DiscoveryCategory = {
   heroImage: string;
   articlesCount: number;
   tag: string;
-  issueNote: string;
+  editorialNote: string;
   route?: "Brand" | "Influencer" | "Lifestyle" | "Automotive";
   routeParam?: string;
   listingCategory?: ListingCategory;
@@ -42,6 +63,7 @@ function cardsFromArticleIds(ids: string[]): ExploreArticleCard[] {
         author: "ATMAD",
         readTime: "5 min",
         imageUrl: FALLBACK_IMG,
+        action: { kind: "get_the_look" },
       };
     }
     return {
@@ -50,6 +72,7 @@ function cardsFromArticleIds(ids: string[]): ExploreArticleCard[] {
       author: a.author,
       readTime: shortenReadTime(a.readTime),
       imageUrl: a.coverImage || FALLBACK_IMG,
+      action: exploreActionForArticle(a),
     };
   });
 }
@@ -65,7 +88,7 @@ const RAW: RawCat[] = [
       "https://images.unsplash.com/photo-1618362429894-235528bbb226?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=900&q=80",
     articlesCount: 14,
     tag: "Fashion",
-    issueNote: "When silence becomes the most expensive statement.",
+    editorialNote: "When silence becomes the most expensive statement.",
     route: "Brand",
     routeParam: "maison-noir",
     listingCategory: "fashion",
@@ -79,10 +102,10 @@ const RAW: RawCat[] = [
       "https://images.unsplash.com/photo-1692611894076-9f8aac7b1b4a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=900&q=80",
     articlesCount: 9,
     tag: "Culture",
-    issueNote: "Architecture built not in stone, but in perception.",
+    editorialNote: "Architecture built not in stone, but in perception.",
     route: "Influencer",
     routeParam: "elena-vasquez",
-    articleIds: ["1", "3", "2"],
+    articleIds: ["1", "6", "3", "2"],
   },
   {
     id: "private-finance",
@@ -92,7 +115,7 @@ const RAW: RawCat[] = [
       "https://images.unsplash.com/photo-1630243237838-a44b1a87eb95?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=900&q=80",
     articlesCount: 7,
     tag: "Finance",
-    issueNote: "The grammar of old money, spoken in new markets.",
+    editorialNote: "The grammar of old money, spoken in new markets.",
     listingCategory: "finance",
     articleIds: ["5", "2", "4"],
   },
@@ -104,7 +127,7 @@ const RAW: RawCat[] = [
       "https://images.unsplash.com/photo-1701519664307-a402295fc7c7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=900&q=80",
     articlesCount: 6,
     tag: "Automotive",
-    issueNote: "To drive is to express. To collect is to commit.",
+    editorialNote: "To drive is to express. To collect is to commit.",
     route: "Automotive",
     listingCategory: "automotive",
     articleIds: ["3", "1", "5"],
@@ -117,7 +140,7 @@ const RAW: RawCat[] = [
       "https://images.unsplash.com/photo-1717764488252-71702b7acf7d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=900&q=80",
     articlesCount: 11,
     tag: "Travel",
-    issueNote: "Destinations chosen not for Instagram, but for perspective.",
+    editorialNote: "Destinations chosen not for Instagram, but for perspective.",
     route: "Lifestyle",
     listingCategory: "travel",
     articleIds: ["4", "5", "3"],
@@ -130,7 +153,7 @@ const RAW: RawCat[] = [
       "https://images.unsplash.com/photo-1645951249336-172f41b34321?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=900&q=80",
     articlesCount: 21,
     tag: "Fashion",
-    issueNote: "Every collection is a sentence. Every season, a thesis.",
+    editorialNote: "Every collection is a sentence. Every season, a thesis.",
     listingCategory: "fashion",
     articleIds: ["4", "2", "1", "3"],
   },

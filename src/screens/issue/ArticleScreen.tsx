@@ -1,49 +1,283 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
   Image,
+  Modal,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
 import { Feather } from "@expo/vector-icons";
 import {
+  CommonActions,
+  useFocusEffect,
   useNavigation,
   useRoute,
+  type CompositeNavigationProp,
   type RouteProp,
-} from "@react-navigation/native";
-import type {
-  CompositeNavigationProp,
-  NavigatorScreenParams,
 } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type {
-  IssueStackParamList,
+  DiscoverStackParamList,
   MainTabParamList,
-  WalletStackParamList,
 } from "../../navigation/types";
 import { useAuth } from "../../auth/AuthProvider";
 import { useArticleEngagementTracking } from "../../hooks/useArticleEngagementTracking";
 import { fetchArticles } from "../../data/contentService";
 import type { Article } from "../../data/types";
 import { colors, fonts, radius, spacing } from "../../theme/tokens";
+import { useSavedArticlesStore } from "../../store/savedArticlesStore";
+import { useNotificationBannerStore } from "../../store/notificationBannerStore";
+import { DiscoverStoryCommentsSheet } from "../../components/DiscoverStoryCommentsSheet";
+import { DiscoverStoryEngagementBar } from "../../components/DiscoverStoryEngagementBar";
+import { EditorialVideoPlayer } from "../../components/EditorialVideoPlayer";
 
 type Nav = CompositeNavigationProp<
-  NativeStackNavigationProp<IssueStackParamList, "Article">,
+  NativeStackNavigationProp<DiscoverStackParamList, "Article">,
   BottomTabNavigationProp<MainTabParamList>
 >;
-type R = RouteProp<IssueStackParamList, "Article">;
+type R = RouteProp<DiscoverStackParamList, "Article">;
+
+function articleShowsGetTheLook(article: Article): boolean {
+  const items = article.lookbookItems ?? [];
+  const showDefault =
+    items.length === 0 &&
+    (Boolean(article.linkedListingId) ||
+      article.getTheLook === true ||
+      article.type === "spread");
+  return items.length > 0 || showDefault;
+}
+
+function ArticleGetTheLookFooter({
+  article,
+  onOpenListing,
+  onBrowseSimilar,
+}: {
+  article: Article;
+  onOpenListing: (listingId: string) => void;
+  onBrowseSimilar: () => void;
+}) {
+  const insets = useSafeAreaInsets();
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const items = article.lookbookItems ?? [];
+
+  const onItemPress = (item: (typeof items)[number]) => {
+    if (item.listingId) onOpenListing(item.listingId);
+    else onBrowseSimilar();
+    setPickerOpen(false);
+  };
+
+  const onDefaultPress = () => {
+    if (article.linkedListingId) onOpenListing(article.linkedListingId);
+    else onBrowseSimilar();
+  };
+
+  const onPrimaryPress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (items.length === 0) onDefaultPress();
+    else if (items.length === 1) onItemPress(items[0]);
+    else setPickerOpen(true);
+  };
+
+  if (!articleShowsGetTheLook(article)) return null;
+
+  return (
+    <>
+      <View
+        style={{
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: colors.border,
+          backgroundColor: colors.background,
+          paddingHorizontal: spacing.lg,
+          paddingTop: spacing.sm,
+          paddingBottom: spacing.xs + insets.bottom,
+        }}
+      >
+        <Pressable
+          onPress={onPrimaryPress}
+          style={({ pressed }) => ({
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: spacing.sm,
+            paddingVertical: spacing.sm + 2,
+            borderRadius: radius.pill,
+            backgroundColor: colors.foreground,
+            opacity: pressed ? 0.88 : 1,
+          })}
+        >
+          <Text
+            style={{
+              fontFamily: fonts.bodyMedium,
+              fontSize: 11,
+              letterSpacing: 2.4,
+              color: colors.inverse,
+              textTransform: "uppercase",
+            }}
+          >
+            Get the look
+          </Text>
+          <Feather name="chevron-right" size={16} color={colors.inverse} />
+        </Pressable>
+      </View>
+
+      <Modal
+        visible={pickerOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPickerOpen(false)}
+      >
+        <View style={{ flex: 1, justifyContent: "flex-end" }}>
+          <Pressable
+            style={[
+              StyleSheet.absoluteFillObject,
+              { backgroundColor: "rgba(0,0,0,0.45)", zIndex: 0 },
+            ]}
+            onPress={() => setPickerOpen(false)}
+          />
+          <View
+            style={{
+              backgroundColor: colors.background,
+              borderTopLeftRadius: radius.xl,
+              borderTopRightRadius: radius.xl,
+              paddingTop: spacing.lg,
+              paddingBottom: spacing.xl + insets.bottom,
+              paddingHorizontal: spacing.lg,
+              borderTopWidth: StyleSheet.hairlineWidth,
+              borderColor: colors.border,
+              zIndex: 1,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: fonts.bodyMedium,
+                fontSize: 10,
+                letterSpacing: 2,
+                color: colors.textTertiary,
+                textTransform: "uppercase",
+                marginBottom: spacing.md,
+                textAlign: "center",
+              }}
+            >
+              Shop the shoot
+            </Text>
+            {items.map((item, i) => (
+              <Pressable
+                key={`${item.label}-${i}`}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  onItemPress(item);
+                }}
+                style={({ pressed }) => ({
+                  paddingVertical: spacing.md,
+                  borderTopWidth: i > 0 ? StyleSheet.hairlineWidth : 0,
+                  borderTopColor: colors.border,
+                  opacity: pressed ? 0.72 : 1,
+                })}
+              >
+                <Text
+                  style={{
+                    fontFamily: fonts.body,
+                    fontSize: 15,
+                    lineHeight: 20,
+                    color: colors.foreground,
+                    textAlign: "center",
+                  }}
+                >
+                  {item.label}
+                </Text>
+              </Pressable>
+            ))}
+            <Pressable
+              onPress={() => setPickerOpen(false)}
+              style={({ pressed }) => ({
+                marginTop: spacing.md,
+                paddingVertical: spacing.sm,
+                opacity: pressed ? 0.65 : 1,
+              })}
+            >
+              <Text
+                style={{
+                  fontFamily: fonts.body,
+                  fontSize: 13,
+                  color: colors.textSecondary,
+                  textAlign: "center",
+                }}
+              >
+                Cancel
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+    </>
+  );
+}
 
 export function ArticleScreen() {
+  const { height: windowHeight } = useWindowDimensions();
   const nav = useNavigation<Nav>();
   const route = useRoute<R>();
   const { session, refreshProfile } = useAuth();
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const articleId = route.params.id;
+  const fromExplore = route.params.fromExplore === true;
+  const saved = useSavedArticlesStore((s) => s.hasArticle(articleId));
+  const saveArticle = useSavedArticlesStore((s) => s.saveArticle);
+  const removeArticle = useSavedArticlesStore((s) => s.removeArticle);
+  const showBanner = useNotificationBannerStore((s) => s.show);
+
+  const leaveArticle = useCallback(() => {
+    if (fromExplore) {
+      if (nav.canGoBack()) {
+        nav.goBack();
+      } else {
+        nav.dispatch(
+          CommonActions.navigate({
+            name: "DiscoverTab",
+            params: { screen: "Feed" },
+          }),
+        );
+      }
+      nav.navigate("ExploreTab", { screen: "Discovery" });
+      return;
+    }
+    if (nav.canGoBack()) {
+      nav.goBack();
+      return;
+    }
+    const parent = nav.getParent();
+    if (parent?.canGoBack?.()) {
+      parent.goBack();
+      return;
+    }
+    nav.dispatch(
+      CommonActions.navigate({
+        name: "DiscoverTab",
+        params: { screen: "Feed" },
+      }),
+    );
+  }, [fromExplore, nav]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+        leaveArticle();
+        return true;
+      });
+      return () => sub.remove();
+    }, [leaveArticle]),
+  );
 
   const { onScroll } = useArticleEngagementTracking(
     notFound || loading ? null : article,
@@ -66,13 +300,7 @@ export function ArticleScreen() {
     };
   }, [route.params.id]);
 
-  function goToDeal(dealId: string) {
-    const walletParams: NavigatorScreenParams<WalletStackParamList> = {
-      screen: "Deal",
-      params: { id: dealId },
-    };
-    nav.navigate("WalletTab", walletParams);
-  }
+  const articleCoverHeight = windowHeight * 0.4;
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colors.background }}>
@@ -81,7 +309,7 @@ export function ArticleScreen() {
         paddingHorizontal: spacing.lg, paddingVertical: spacing.sm,
       }}>
         <Pressable
-          onPress={() => nav.goBack()}
+          onPress={leaveArticle}
           hitSlop={12}
           style={({ pressed }) => ({
             flexDirection: "row", alignItems: "center",
@@ -94,10 +322,26 @@ export function ArticleScreen() {
             fontFamily: fonts.body, fontSize: 10, letterSpacing: 2,
             color: colors.textSecondary, textTransform: "uppercase",
           }}>
-            Issue
+            {fromExplore ? "Explore" : "Discover"}
           </Text>
         </Pressable>
-        <Feather name="bookmark" size={18} color={colors.textTertiary} />
+        <Pressable
+          onPress={() => {
+            if (loading || notFound) return;
+            if (saved) {
+              removeArticle(articleId);
+              showBanner("Removed", "Article removed from your saved list.");
+            } else {
+              saveArticle(articleId);
+              showBanner("Saved", "Find this story anytime from your bookmark.");
+            }
+          }}
+          hitSlop={12}
+          disabled={loading || notFound}
+          style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
+        >
+          <Feather name="bookmark" size={18} color={saved ? colors.foreground : colors.textTertiary} />
+        </Pressable>
       </View>
 
       {loading ? (
@@ -116,10 +360,10 @@ export function ArticleScreen() {
             fontFamily: fonts.bodyLight, fontSize: 13, color: colors.textSecondary,
             textAlign: "center",
           }}>
-            This piece may have been retired from the issue.
+            This piece may have been retired from Discover.
           </Text>
           <Pressable
-            onPress={() => nav.goBack()}
+            onPress={leaveArticle}
             style={({ pressed }) => ({
               marginTop: spacing.lg,
               paddingHorizontal: spacing.lg, paddingVertical: spacing.sm,
@@ -136,52 +380,31 @@ export function ArticleScreen() {
           </Pressable>
         </View>
       ) : (
+        <View style={{ flex: 1 }}>
         <ScrollView
           onScroll={onScroll}
           scrollEventThrottle={16}
-          contentContainerStyle={{ paddingBottom: 120 }}
+          contentContainerStyle={{ paddingBottom: spacing.xl }}
           showsVerticalScrollIndicator={false}
+          style={{ flex: 1 }}
         >
-          {article.coverImage ? (
-            article.linkedListingId ? (
-              <Pressable
-                onPress={() => nav.navigate("Listing", { id: article.linkedListingId! })}
-                style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}
-              >
-                <Image
-                  source={{ uri: article.coverImage }}
-                  style={{
-                    width: "100%",
-                    aspectRatio: 1.05,
-                    backgroundColor: colors.card,
-                  }}
-                />
-                <View style={{
-                  position: "absolute", right: spacing.md, bottom: spacing.md,
-                  flexDirection: "row", alignItems: "center", gap: 6,
-                  backgroundColor: "rgba(255,255,255,0.92)",
-                  paddingHorizontal: 12, paddingVertical: 7,
-                  borderRadius: radius.pill,
-                }}>
-                  <Feather name="shopping-bag" size={11} color={colors.foreground} />
-                  <Text style={{
-                    fontFamily: fonts.bodyMedium, fontSize: 10, letterSpacing: 1.5,
-                    color: colors.foreground, textTransform: "uppercase",
-                  }}>
-                    Get the Look
-                  </Text>
-                </View>
-              </Pressable>
-            ) : (
-              <Image
-                source={{ uri: article.coverImage }}
-                style={{
-                  width: "100%",
-                  aspectRatio: 1.05,
-                  backgroundColor: colors.card,
-                }}
-              />
-            )
+          {article.videoUrl?.trim() ? (
+            <EditorialVideoPlayer
+              uri={article.videoUrl.trim()}
+              posterUri={article.coverImage}
+              aspectRatio={16 / 9}
+              useNativeControls
+            />
+          ) : article.coverImage ? (
+            <Image
+              source={{ uri: article.coverImage }}
+              style={{
+                width: "100%",
+                height: articleCoverHeight,
+                backgroundColor: colors.card,
+              }}
+              resizeMode="cover"
+            />
           ) : null}
 
           <View style={{ paddingHorizontal: spacing.xl, paddingTop: spacing.xl }}>
@@ -211,6 +434,7 @@ export function ArticleScreen() {
             <View style={{
               flexDirection: "row", alignItems: "center",
               marginTop: spacing.lg, paddingTop: spacing.md,
+              paddingBottom: spacing.md,
               borderTopWidth: 1, borderTopColor: colors.border,
             }}>
               <View style={{
@@ -243,6 +467,11 @@ export function ArticleScreen() {
                 ) : null}
               </View>
             </View>
+
+            <DiscoverStoryEngagementBar
+              articleId={article.id}
+              onOpenComments={() => setCommentsOpen(true)}
+            />
           </View>
 
           <View style={{ paddingHorizontal: spacing.xl, paddingTop: spacing.xl }}>
@@ -271,76 +500,23 @@ export function ArticleScreen() {
                 </Text>
               ))}
           </View>
-
-          {article.deal ? (
-            <View style={{
-              marginHorizontal: spacing.xl, marginTop: spacing.md,
-              padding: spacing.lg,
-              backgroundColor: colors.surface,
-              borderRadius: radius.lg,
-            }}>
-              <Text style={{
-                fontFamily: fonts.body, fontSize: 9, letterSpacing: 3,
-                color: colors.silverDim, textTransform: "uppercase",
-              }}>
-                Member Offer
-              </Text>
-              <Text style={{
-                marginTop: spacing.xs,
-                fontFamily: fonts.heading, fontSize: 22,
-                color: colors.inverse,
-              }}>
-                {article.deal.brand}
-              </Text>
-              <Text style={{
-                marginTop: spacing.xs,
-                fontFamily: fonts.bodyLight, fontSize: 14, lineHeight: 20,
-                color: colors.silver,
-              }}>
-                {article.deal.description}
-              </Text>
-
-              <View style={{
-                marginTop: spacing.md, paddingTop: spacing.md,
-                borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.08)",
-              }}>
-                <Text style={{
-                  fontFamily: fonts.bodyMedium, fontSize: 12,
-                  color: colors.inverse,
-                }}>
-                  {article.deal.discount}
-                </Text>
-                <Text style={{
-                  marginTop: 2,
-                  fontFamily: fonts.body, fontSize: 10, letterSpacing: 2,
-                  color: colors.silverDim, textTransform: "uppercase",
-                }}>
-                  +{article.deal.points} pts · {article.deal.expiry}
-                </Text>
-              </View>
-
-              <Pressable
-                onPress={() => goToDeal(article.deal!.id)}
-                style={({ pressed }) => ({
-                  marginTop: spacing.lg,
-                  paddingVertical: spacing.md,
-                  borderRadius: radius.pill,
-                  backgroundColor: colors.inverse,
-                  alignItems: "center",
-                  opacity: pressed ? 0.85 : 1,
-                })}
-              >
-                <Text style={{
-                  fontFamily: fonts.bodyMedium, fontSize: 11, letterSpacing: 2.5,
-                  color: colors.foreground, textTransform: "uppercase",
-                }}>
-                  Activate Offer
-                </Text>
-              </Pressable>
-            </View>
-          ) : null}
         </ScrollView>
+        <ArticleGetTheLookFooter
+          article={article}
+          onOpenListing={(id) => nav.navigate("Listing", { id })}
+          onBrowseSimilar={() =>
+            showBanner("Curated edit", "Open Explore → Fashion to shop picks in this world.")
+          }
+        />
+        </View>
       )}
+
+      <DiscoverStoryCommentsSheet
+        visible={commentsOpen && !notFound && Boolean(article)}
+        storyId={articleId}
+        headline={article?.headline ?? ""}
+        onClose={() => setCommentsOpen(false)}
+      />
     </SafeAreaView>
   );
 }

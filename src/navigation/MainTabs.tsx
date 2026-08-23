@@ -3,9 +3,9 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Text, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import type {
+  DiscoverStackParamList,
   ExploreStackParamList,
   HomeStackParamList,
-  IssueStackParamList,
   MainTabParamList,
   ProfileStackParamList,
   WalletStackParamList,
@@ -38,7 +38,8 @@ import { BrandCampaignScreen } from "../screens/explore/BrandCampaignScreen";
 import { InfluencerFeatureScreen } from "../screens/explore/InfluencerFeatureScreen";
 import { LifestyleScreen } from "../screens/explore/LifestyleScreen";
 import { AutomotiveCampaignScreen } from "../screens/explore/AutomotiveCampaignScreen";
-import { colors, fonts } from "../theme/tokens";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { colors, fonts, spacing } from "../theme/tokens";
 import { SignupPhoneReminder } from "./SignupPhoneReminder";
 import { PhoneEntryScreen } from "../screens/auth/PhoneEntryScreen";
 import { OtpVerifyScreen } from "../screens/auth/OtpVerifyScreen";
@@ -55,15 +56,15 @@ function HomeStack() {
   );
 }
 
-const IssueStackNav = createNativeStackNavigator<IssueStackParamList>();
-function IssueStack() {
+const DiscoverStackNav = createNativeStackNavigator<DiscoverStackParamList>();
+function DiscoverStack() {
   return (
-    <IssueStackNav.Navigator screenOptions={{ headerShown: false }} initialRouteName="Cover">
-      <IssueStackNav.Screen name="Cover"   component={CoverScreen} />
-      <IssueStackNav.Screen name="Feed"    component={MagazineFeedScreen} />
-      <IssueStackNav.Screen name="Article" component={ArticleScreen} />
-      <IssueStackNav.Screen name="Listing" component={ListingDetailScreen} />
-    </IssueStackNav.Navigator>
+    <DiscoverStackNav.Navigator screenOptions={{ headerShown: false }} initialRouteName="Feed">
+      <DiscoverStackNav.Screen name="Cover"   component={CoverScreen} />
+      <DiscoverStackNav.Screen name="Feed"    component={MagazineFeedScreen} />
+      <DiscoverStackNav.Screen name="Article" component={ArticleScreen} />
+      <DiscoverStackNav.Screen name="Listing" component={ListingDetailScreen} />
+    </DiscoverStackNav.Navigator>
   );
 }
 
@@ -120,35 +121,36 @@ function ProfileStack() {
 
 // ── Tab bar ────────────────────────────────────────────────────────────
 const TAB_LABELS: Record<keyof MainTabParamList, string> = {
-  IssueTab:   "Issue",
-  ExploreTab: "Explore",
-  HomeTab:    "",
-  WalletTab:  "Wallet",
-  ProfileTab: "Profile",
+  DiscoverTab: "Discover",
+  ExploreTab:  "Explore",
+  HomeTab:     "",
+  WalletTab:   "Wallet",
+  ProfileTab:  "Profile",
 };
 
 type FeatherName = React.ComponentProps<typeof Feather>["name"];
 const TAB_ICONS: Record<keyof MainTabParamList, FeatherName> = {
-  IssueTab:   "book-open",
-  ExploreTab: "compass",
-  HomeTab:    "home",
-  WalletTab:  "credit-card",
-  ProfileTab: "user",
+  DiscoverTab: "compass",
+  ExploreTab:  "layers",
+  HomeTab:     "home",
+  WalletTab:   "credit-card",
+  ProfileTab:  "user",
 };
 
 // Root screen of each nested stack — used so a tab press always lands on
 // its root, instead of the last sub-screen the user was on.
 const TAB_ROOT: Record<keyof MainTabParamList, string> = {
-  IssueTab:   "Cover",
-  ExploreTab: "Discovery",
-  HomeTab:    "Home",
-  WalletTab:  "Wallet",
-  ProfileTab: "Profile",
+  DiscoverTab: "Feed",
+  ExploreTab:  "Discovery",
+  HomeTab:     "Home",
+  WalletTab:   "Wallet",
+  ProfileTab:  "Profile",
 };
 
 const Tabs = createBottomTabNavigator<MainTabParamList>();
 
 export function MainTabs() {
+  const insets = useSafeAreaInsets();
   return (
     <>
       <SignupPhoneReminder />
@@ -177,6 +179,8 @@ export function MainTabs() {
             height: 72,
             paddingTop: 8,
             paddingBottom: 12,
+            paddingLeft: spacing.xl + insets.left,
+            paddingRight: spacing.xl + insets.right,
           },
           tabBarLabel: ({ focused }) =>
             isHome ? null : (
@@ -220,7 +224,7 @@ export function MainTabs() {
         };
       }}
     >
-      <Tabs.Screen name="IssueTab"   component={IssueStack} />
+      <Tabs.Screen name="DiscoverTab" component={DiscoverStack} />
       <Tabs.Screen name="ExploreTab" component={ExploreStack} />
       <Tabs.Screen name="HomeTab"    component={HomeStack} />
       <Tabs.Screen name="WalletTab"  component={WalletStack} />

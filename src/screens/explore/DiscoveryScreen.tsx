@@ -1,14 +1,18 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Dimensions,
   Modal,
   Pressable,
   ScrollView,
   Text,
+  TextInput,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as Clipboard from "expo-clipboard";
 import { Image } from "expo-image";
+import * as Haptics from "expo-haptics";
+import * as Linking from "expo-linking";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { CompositeNavigationProp } from "@react-navigation/native";
@@ -26,18 +30,313 @@ import {
   DISCOVERY_CATEGORIES,
   type DiscoveryCategory,
   type ExploreArticleCard,
+  type ExploreEntityAction,
 } from "../../data/exploreDiscoveryData";
+import { useNotificationBannerStore } from "../../store/notificationBannerStore";
 import { colors, fonts, radius, spacing } from "../../theme/tokens";
+
+function exploreCardLayout(screenWidth: number) {
+  const w = Math.min(328, Math.max(244, Math.round(screenWidth * 0.84)));
+  const featuredHeight = Math.round((w * 9.2) / 16);
+  const articleImageHeight = Math.round(w * 0.92);
+  const articleFooterHeight = 152;
+  return {
+    cardWidth: w,
+    featuredHeight,
+    articleImageHeight,
+    articleFooterHeight,
+    articleCardHeight: articleImageHeight + articleFooterHeight,
+  };
+}
 
 type Nav = CompositeNavigationProp<
   NativeStackNavigationProp<ExploreStackParamList, "Discovery">,
   BottomTabNavigationProp<MainTabParamList>
 >;
 
+function ctaForExploreAction(action: ExploreEntityAction): { label: string; icon: keyof typeof Feather.glyphMap } {
+  switch (action.kind) {
+    case "copy_code":
+      return { label: "Reveal code", icon: "copy" };
+    case "activate":
+      return { label: "Activate", icon: "external-link" };
+    case "get_the_look":
+      return { label: "Explore", icon: "chevron-right" };
+  }
+}
+
+/** Filled primary control (e.g. copy, activate, hub). */
+function ExploreFilledButton({
+  label,
+  onPress,
+  icon,
+  compact,
+  noMarginTop,
+}: {
+  label: string;
+  onPress: () => void;
+  icon?: keyof typeof Feather.glyphMap;
+  compact?: boolean;
+  noMarginTop?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({
+        marginTop: noMarginTop ? 0 : compact ? spacing.xs : spacing.sm,
+        marginBottom: compact ? spacing.sm : 0,
+        paddingVertical: compact ? 11 : 13,
+        paddingHorizontal: compact ? spacing.md : spacing.lg,
+        borderRadius: radius.md,
+        backgroundColor: colors.foreground,
+        opacity: pressed ? 0.9 : 1,
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "row",
+        gap: 9,
+      })}
+    >
+      {icon ? <Feather name={icon} size={compact ? 15 : 16} color={colors.inverse} /> : null}
+      <Text
+        style={{
+          fontFamily: fonts.bodyMedium,
+          fontSize: compact ? 10 : 11,
+          letterSpacing: 1.5,
+          color: colors.inverse,
+          textTransform: "uppercase",
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+/** Bordered secondary control (e.g. reveal code). */
+function ExploreOutlinedButton({
+  label,
+  onPress,
+  icon,
+  compact,
+  noMarginTop,
+}: {
+  label: string;
+  onPress: () => void;
+  icon?: keyof typeof Feather.glyphMap;
+  compact?: boolean;
+  noMarginTop?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({
+        marginTop: noMarginTop ? 0 : compact ? spacing.xs : spacing.sm,
+        marginBottom: compact ? spacing.sm : 0,
+        paddingVertical: compact ? 11 : 13,
+        paddingHorizontal: compact ? spacing.md : spacing.lg,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: colors.borderFocus,
+        backgroundColor: colors.background,
+        opacity: pressed ? 0.88 : 1,
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "row",
+        gap: 9,
+      })}
+    >
+      {icon ? <Feather name={icon} size={compact ? 15 : 16} color={colors.foreground} /> : null}
+      <Text
+        style={{
+          fontFamily: fonts.bodyMedium,
+          fontSize: compact ? 10 : 11,
+          letterSpacing: 1.5,
+          color: colors.foreground,
+          textTransform: "uppercase",
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+/** Read-only code field — “vault” look; dimmed when code is still masked. */
+function ExploreCodeField({
+  value,
+  compact,
+  tight,
+  multiline,
+  dimmed,
+}: {
+  value: string;
+  compact?: boolean;
+  tight?: boolean;
+  multiline?: boolean;
+  /** Softer, editorial treatment while the pass is hidden */
+  dimmed?: boolean;
+}) {
+  const fadeBorder = dimmed ? "rgba(10,10,10,0.07)" : "rgba(10,10,10,0.14)";
+  const fadeBg = dimmed ? "rgba(248,248,250,0.97)" : "rgba(241,241,244,0.95)";
+  const fadeText = dimmed ? "rgba(10,10,10,0.38)" : colors.foreground;
+  const tracking = dimmed ? (tight ? 2.8 : 3.2) : tight ? 1.2 : 2;
+
+  return (
+    <View
+      style={{
+        marginTop: tight ? 0 : spacing.xs,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: fadeBorder,
+        backgroundColor: fadeBg,
+        paddingHorizontal: tight ? 10 : compact ? spacing.md : spacing.md + 2,
+        paddingVertical: tight ? 10 : compact ? 11 : 12,
+        minHeight: tight ? 40 : multiline ? 52 : 46,
+      }}
+    >
+      {dimmed ? (
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            right: 10,
+            top: 0,
+            bottom: 0,
+            justifyContent: "center",
+            alignItems: "center",
+            opacity: 0.35,
+          }}
+        >
+          <Feather name="lock" size={tight ? 12 : 13} color={colors.foreground} />
+        </View>
+      ) : null}
+      <TextInput
+        value={value}
+        editable={false}
+        multiline={multiline}
+        scrollEnabled={multiline}
+        showSoftInputOnFocus={false}
+        style={{
+          fontFamily: dimmed ? fonts.bodyLight : fonts.bodyMedium,
+          fontSize: tight ? 13 : compact ? 14 : 15,
+          letterSpacing: tracking,
+          color: fadeText,
+          padding: 0,
+          margin: 0,
+          minHeight: multiline ? 30 : tight ? 20 : 22,
+          paddingRight: dimmed ? (tight ? 22 : 26) : 0,
+        }}
+      />
+    </View>
+  );
+}
+
+/** First character visible; remaining characters shown as bullet masks (password-style). */
+function maskPartnerCode(code: string): string {
+  const c = code.trim();
+  if (!c) return "• • • • • •";
+  if (c.length === 1) return c;
+  return `${c[0]}${"\u2022".repeat(c.length - 1)}`;
+}
+
+function ExploreMaskedCodeBlock({
+  code,
+  compact,
+  tight,
+  onReveal,
+}: {
+  code: string;
+  compact?: boolean;
+  /** Compact vertical rhythm for fixed-height carousel cards */
+  tight?: boolean;
+  onReveal?: () => void;
+}) {
+  const showBanner = useNotificationBannerStore((s) => s.show);
+  const plain = code.trim();
+  const needsRevealStep = plain.length > 1;
+  const [revealed, setRevealed] = useState(!needsRevealStep);
+  const sheetMultiline = !tight && !compact;
+
+  useEffect(() => {
+    if (!needsRevealStep || !revealed) return;
+    const t = setTimeout(() => {
+      setRevealed(false);
+    }, 30_000);
+    return () => clearTimeout(t);
+  }, [needsRevealStep, revealed]);
+
+  const onRevealPress = async () => {
+    onReveal?.();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (!plain) return;
+    await Clipboard.setStringAsync(plain);
+    Haptics.selectionAsync();
+    showBanner(
+      "Code copied",
+      "Partner code is on your clipboard. It stays visible here for 30 seconds.",
+    );
+    setRevealed(true);
+  };
+
+  const onCopyPress = async () => {
+    if (!plain) return;
+    await Clipboard.setStringAsync(plain);
+    Haptics.selectionAsync();
+    showBanner("Code copied", "Partner code is on your clipboard.");
+  };
+
+  if (!plain) {
+    return (
+      <Text
+        style={{
+          marginTop: compact ? spacing.sm : spacing.sm,
+          fontFamily: fonts.bodyLight,
+          fontSize: 11,
+          color: colors.textTertiary,
+        }}
+      >
+        Code unavailable
+      </Text>
+    );
+  }
+
+  const display = revealed ? plain : maskPartnerCode(code);
+
+  return (
+    <View style={{ marginTop: tight ? 0 : spacing.xs }}>
+      <ExploreCodeField
+        value={display}
+        compact={compact}
+        tight={tight}
+        multiline={sheetMultiline}
+        dimmed={needsRevealStep && !revealed}
+      />
+      {!needsRevealStep ? (
+        <ExploreFilledButton label="Copy code" onPress={onCopyPress} icon="copy" compact={Boolean(tight || compact)} />
+      ) : !revealed ? (
+        <ExploreOutlinedButton
+          label="Reveal code"
+          onPress={onRevealPress}
+          icon="eye"
+          compact={Boolean(tight || compact)}
+        />
+      ) : (
+        <ExploreOutlinedButton
+          label="Copy again"
+          onPress={onCopyPress}
+          icon="copy"
+          compact={Boolean(tight || compact)}
+        />
+      )}
+    </View>
+  );
+}
+
 export function DiscoveryScreen() {
   const nav = useNavigation<Nav>();
   const { session } = useAuth();
   const recordCategoryClick = useHomeIntelligenceStore((s) => s.recordCategoryClick);
+  const showBanner = useNotificationBannerStore((s) => s.show);
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [selected, setSelected] = useState<DiscoveryCategory | null>(null);
 
@@ -54,13 +353,33 @@ export function DiscoveryScreen() {
     [activeTag],
   );
 
-  const screenWidth = Dimensions.get("window").width;
-  const cardW = Math.min(176, (screenWidth - spacing.xl * 2 - spacing.md * 2) / 2.05);
+  const { width: screenWidth } = useWindowDimensions();
+  const { cardWidth, featuredHeight, articleImageHeight, articleFooterHeight, articleCardHeight } = useMemo(
+    () => exploreCardLayout(screenWidth),
+    [screenWidth],
+  );
 
-  function openArticle(articleId: string, tag: string) {
-    recordCategoryClick(tag);
-    nav.navigate("IssueTab", { screen: "Article", params: { id: articleId } });
-  }
+  const onExploreEntity = useCallback(
+    async (card: ExploreArticleCard, tag: string) => {
+      recordCategoryClick(tag);
+      const { action } = card;
+      if (action.kind === "get_the_look") {
+        nav.navigate("DiscoverTab", { screen: "Article", params: { id: card.id, fromExplore: true } });
+        return;
+      }
+      if (action.kind === "copy_code") {
+        return;
+      }
+      const raw = action.url.trim();
+      const url = raw.startsWith("http") ? raw : `https://${raw}`;
+      try {
+        await Linking.openURL(url);
+      } catch {
+        showBanner("Could not open link", "Check the URL configured for this story.");
+      }
+    },
+    [nav, recordCategoryClick, showBanner],
+  );
 
   function openCategorySheet(cat: DiscoveryCategory) {
     setSelected(cat);
@@ -92,7 +411,7 @@ export function DiscoveryScreen() {
     } else if (cat.route === "Automotive") {
       nav.navigate("Automotive");
     } else {
-      nav.navigate("IssueTab", { screen: "Feed" });
+      nav.navigate("DiscoverTab", { screen: "Feed" });
     }
   }
 
@@ -131,7 +450,7 @@ export function DiscoveryScreen() {
               color: colors.textSecondary,
             }}
           >
-            Stories by world — swipe each row, tap a cover to read, or open the full hub.
+            Stories by world — swipe each row. Each cover is a code, a partner link, or an editorial to open.
           </Text>
         </View>
 
@@ -182,8 +501,8 @@ export function DiscoveryScreen() {
               key={cat.id}
               onPress={() => openCategorySheet(cat)}
               style={({ pressed }) => ({
-                width: screenWidth * 0.72,
-                aspectRatio: 16 / 10,
+                width: cardWidth,
+                height: featuredHeight,
                 borderRadius: radius.lg,
                 overflow: "hidden",
                 opacity: pressed ? 0.92 : 1,
@@ -326,8 +645,12 @@ export function DiscoveryScreen() {
                 <ArticleCarouselCard
                   key={`${cat.id}-${article.id}`}
                   article={article}
-                  width={cardW}
-                  onPress={() => openArticle(article.id, cat.tag)}
+                  width={cardWidth}
+                  imageHeight={articleImageHeight}
+                  footerHeight={articleFooterHeight}
+                  cardHeight={articleCardHeight}
+                  onPress={() => onExploreEntity(article, cat.tag)}
+                  onRevealCode={() => recordCategoryClick(cat.tag)}
                 />
               ))}
             </ScrollView>
@@ -447,7 +770,7 @@ export function DiscoveryScreen() {
                     color: colors.textSecondary,
                   }}
                 >
-                  {selected.issueNote}
+                  {selected.editorialNote}
                 </Text>
               </View>
 
@@ -469,91 +792,159 @@ export function DiscoveryScreen() {
                 style={{ marginTop: spacing.sm }}
                 contentContainerStyle={{ paddingHorizontal: spacing.xl, paddingBottom: spacing.xxl }}
               >
-                {selected.articles.map((article, i, arr) => (
-                  <Pressable
-                    key={article.id}
-                    onPress={() => {
-                      const tag = selected.tag;
-                      setSelected(null);
-                      openArticle(article.id, tag);
-                    }}
-                    style={({ pressed }) => ({
-                      flexDirection: "row",
-                      alignItems: "center",
-                      paddingVertical: spacing.md,
-                      gap: spacing.md,
-                      borderBottomWidth: i === arr.length - 1 ? 0 : 1,
-                      borderBottomColor: colors.border,
-                      opacity: pressed ? 0.76 : 1,
-                    })}
-                  >
-                    <Image
-                      source={{ uri: article.imageUrl }}
-                      style={{
-                        width: 72,
-                        height: 72,
-                        borderRadius: radius.md,
-                        backgroundColor: colors.muted,
-                      }}
-                      contentFit="cover"
-                      transition={150}
-                    />
-                    <View style={{ flex: 1 }}>
-                      <Text
+                {selected.articles.map((article, i, arr) => {
+                  const cta = ctaForExploreAction(article.action);
+                  const isCopy = article.action.kind === "copy_code";
+                  const rowStyle = {
+                    flexDirection: "row" as const,
+                    alignItems: "center" as const,
+                    paddingVertical: spacing.md,
+                    gap: spacing.md,
+                    borderBottomWidth: i === arr.length - 1 ? 0 : 1,
+                    borderBottomColor: colors.border,
+                  };
+                  const inner = (
+                    <>
+                      <Image
+                        source={{ uri: article.imageUrl }}
                         style={{
-                          fontFamily: fonts.heading,
-                          fontSize: 15,
-                          lineHeight: 20,
-                          color: colors.foreground,
-                          marginBottom: 4,
+                          width: 72,
+                          height: 72,
+                          borderRadius: radius.md,
+                          backgroundColor: colors.muted,
                         }}
-                      >
-                        {article.headline}
-                      </Text>
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        contentFit="cover"
+                        transition={150}
+                      />
+                      <View style={{ flex: 1 }}>
                         <Text
                           style={{
-                            fontFamily: fonts.body,
-                            fontSize: 10,
-                            letterSpacing: 1.5,
-                            color: colors.textTertiary,
-                            textTransform: "uppercase",
+                            fontFamily: fonts.heading,
+                            fontSize: 15,
+                            lineHeight: 20,
+                            color: colors.foreground,
+                            marginBottom: 4,
                           }}
                         >
-                          {article.author}
+                          {article.headline}
                         </Text>
-                        <Text style={{ color: colors.textFaint, fontSize: 10 }}>·</Text>
-                        <Text style={{ fontFamily: fonts.body, fontSize: 10, color: colors.textTertiary }}>
-                          {article.readTime}
-                        </Text>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                          <Text
+                            style={{
+                              fontFamily: fonts.body,
+                              fontSize: 10,
+                              letterSpacing: 1.5,
+                              color: colors.textTertiary,
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            {article.author}
+                          </Text>
+                          <Text style={{ color: colors.textFaint, fontSize: 10 }}>·</Text>
+                          <Text style={{ fontFamily: fonts.body, fontSize: 10, color: colors.textTertiary }}>
+                            {article.readTime}
+                          </Text>
+                        </View>
+                        {article.action.kind === "copy_code" ? (
+                          <ExploreMaskedCodeBlock
+                            code={article.action.code}
+                            onReveal={() => recordCategoryClick(selected.tag)}
+                          />
+                        ) : (
+                          <View style={{ marginTop: spacing.sm, alignSelf: "stretch" }}>
+                            {article.action.kind === "activate" ? (
+                              <View
+                                style={{
+                                  paddingVertical: 11,
+                                  paddingHorizontal: spacing.md,
+                                  borderRadius: radius.md,
+                                  backgroundColor: colors.foreground,
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  gap: 9,
+                                }}
+                              >
+                                <Feather name={cta.icon} size={15} color={colors.inverse} />
+                                <Text
+                                  style={{
+                                    fontFamily: fonts.bodyMedium,
+                                    fontSize: 11,
+                                    letterSpacing: 1.5,
+                                    color: colors.inverse,
+                                    textTransform: "uppercase",
+                                  }}
+                                >
+                                  {cta.label}
+                                </Text>
+                              </View>
+                            ) : (
+                              <View
+                                style={{
+                                  paddingVertical: 11,
+                                  paddingHorizontal: spacing.md,
+                                  borderRadius: radius.md,
+                                  borderWidth: 1,
+                                  borderColor: colors.borderFocus,
+                                  backgroundColor: colors.background,
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  gap: 9,
+                                }}
+                              >
+                                <Feather name={cta.icon} size={15} color={colors.foreground} />
+                                <Text
+                                  style={{
+                                    fontFamily: fonts.bodyMedium,
+                                    fontSize: 11,
+                                    letterSpacing: 1.5,
+                                    color: colors.foreground,
+                                    textTransform: "uppercase",
+                                  }}
+                                >
+                                  {cta.label}
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                        )}
                       </View>
-                    </View>
-                    <Feather name="arrow-right" size={14} color={colors.textTertiary} />
-                  </Pressable>
-                ))}
+                    </>
+                  );
+                  if (isCopy) {
+                    return (
+                      <View key={article.id} style={rowStyle}>
+                        {inner}
+                      </View>
+                    );
+                  }
+                  return (
+                    <Pressable
+                      key={article.id}
+                      onPress={() => {
+                        const tag = selected.tag;
+                        setSelected(null);
+                        onExploreEntity(article, tag);
+                      }}
+                      style={({ pressed }) => ({
+                        ...rowStyle,
+                        opacity: pressed ? 0.76 : 1,
+                      })}
+                    >
+                      {inner}
+                    </Pressable>
+                  );
+                })}
 
-                <Pressable
-                  onPress={followHubLink}
-                  style={{
-                    marginTop: spacing.lg,
-                    paddingVertical: spacing.md,
-                    alignItems: "center",
-                    borderRadius: radius.md,
-                    backgroundColor: colors.foreground,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: fonts.bodyMedium,
-                      fontSize: 10,
-                      letterSpacing: 3,
-                      color: colors.inverse,
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Enter this hub →
-                  </Text>
-                </Pressable>
+                <View style={{ marginTop: spacing.lg }}>
+                  <ExploreFilledButton
+                    label="Enter this hub"
+                    onPress={followHubLink}
+                    icon="chevron-right"
+                    noMarginTop
+                  />
+                </View>
               </ScrollView>
             </>
           ) : null}
@@ -566,42 +957,57 @@ export function DiscoveryScreen() {
 function ArticleCarouselCard({
   article,
   width,
+  imageHeight,
+  footerHeight,
+  cardHeight,
   onPress,
+  onRevealCode,
 }: {
   article: ExploreArticleCard;
   width: number;
+  imageHeight: number;
+  footerHeight: number;
+  cardHeight: number;
   onPress: () => void;
+  onRevealCode?: () => void;
 }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => ({
+  const cta = ctaForExploreAction(article.action);
+  const isCopy = article.action.kind === "copy_code";
+
+  const inner = (
+    <View
+      style={{
         width,
-        opacity: pressed ? 0.88 : 1,
-      })}
+        height: cardHeight,
+        borderRadius: radius.lg,
+        overflow: "hidden",
+        backgroundColor: colors.card,
+        borderWidth: 1,
+        borderColor: colors.border,
+      }}
     >
+      <Image
+        source={{ uri: article.imageUrl }}
+        style={{ width, height: imageHeight }}
+        contentFit="cover"
+        transition={200}
+      />
       <View
         style={{
-          borderRadius: radius.lg,
-          overflow: "hidden",
-          backgroundColor: colors.card,
-          borderWidth: 1,
-          borderColor: colors.border,
+          height: footerHeight,
+          paddingHorizontal: spacing.md,
+          paddingTop: spacing.sm,
+          paddingBottom: spacing.sm,
+          justifyContent: "space-between",
         }}
       >
-        <Image
-          source={{ uri: article.imageUrl }}
-          style={{ width: "100%", aspectRatio: 3 / 4 }}
-          contentFit="cover"
-          transition={200}
-        />
-        <View style={{ padding: spacing.md }}>
+        <View style={{ flexShrink: 1 }}>
           <Text
-            numberOfLines={3}
+            numberOfLines={2}
             style={{
               fontFamily: fonts.heading,
-              fontSize: 15,
-              lineHeight: 19,
+              fontSize: 14,
+              lineHeight: 18,
               color: colors.foreground,
             }}
           >
@@ -609,7 +1015,7 @@ function ArticleCarouselCard({
           </Text>
           <Text
             style={{
-              marginTop: spacing.sm,
+              marginTop: spacing.xs,
               fontFamily: fonts.body,
               fontSize: 9,
               letterSpacing: 1.5,
@@ -621,7 +1027,86 @@ function ArticleCarouselCard({
             {article.author} · {article.readTime}
           </Text>
         </View>
+        {article.action.kind === "copy_code" ? (
+          <View style={{ alignSelf: "stretch", flexShrink: 0 }}>
+            <ExploreMaskedCodeBlock code={article.action.code} compact tight onReveal={onRevealCode} />
+          </View>
+        ) : (
+          <View style={{ alignSelf: "stretch", flexShrink: 0, marginBottom: spacing.sm }} pointerEvents="none">
+            {article.action.kind === "activate" ? (
+              <View
+                style={{
+                  paddingVertical: 11,
+                  paddingHorizontal: spacing.md,
+                  borderRadius: radius.md,
+                  backgroundColor: colors.foreground,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 9,
+                }}
+              >
+                <Feather name={cta.icon} size={15} color={colors.inverse} />
+                <Text
+                  style={{
+                    fontFamily: fonts.bodyMedium,
+                    fontSize: 10,
+                    letterSpacing: 1.5,
+                    color: colors.inverse,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {cta.label}
+                </Text>
+              </View>
+            ) : (
+              <View
+                style={{
+                  paddingVertical: 11,
+                  paddingHorizontal: spacing.md,
+                  borderRadius: radius.md,
+                  borderWidth: 1,
+                  borderColor: colors.borderFocus,
+                  backgroundColor: colors.background,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 9,
+                }}
+              >
+                <Feather name={cta.icon} size={15} color={colors.foreground} />
+                <Text
+                  style={{
+                    fontFamily: fonts.bodyMedium,
+                    fontSize: 10,
+                    letterSpacing: 1.5,
+                    color: colors.foreground,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {cta.label}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
       </View>
+    </View>
+  );
+
+  if (isCopy) {
+    return <View style={{ width }}>{inner}</View>;
+  }
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({
+        width,
+        opacity: pressed ? 0.88 : 1,
+      })}
+    >
+      {inner}
     </Pressable>
   );
 }

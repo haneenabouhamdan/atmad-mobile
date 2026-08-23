@@ -239,7 +239,7 @@ export function ProfileScreen() {
             fontFamily: fonts.body, fontSize: 9, letterSpacing: 2,
             color: colors.textFaint, textTransform: "uppercase",
           }}>
-            ATMAD · Issue 01 · v1.0.0
+            ATMAD · Discover · v1.0.0
           </Text>
         </View>
       </ScrollView>

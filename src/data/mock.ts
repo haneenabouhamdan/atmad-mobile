@@ -62,6 +62,11 @@ export const mockArticles: Article[] = [
     body: "When Valentina Cruz walked the Marais last September in nothing but a single white dress and no accessories, the photograph became one of the most shared images of the year.",
     author: "THEO NAKAMURA",
     readTime: "5 MIN READ",
+    getTheLook: true,
+    lookbookItems: [
+      { label: "Sculptural drape", topPct: 38, leftPct: 15 },
+    ],
+    videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
   },
   {
     id: "4",
@@ -73,6 +78,11 @@ export const mockArticles: Article[] = [
     body: "For a generation raised on algorithmic validation, true confidence has become the rarest luxury. These seven women discuss the moment they stopped dressing for the room and started dressing for the archive.",
     author: "INES BEAUMONT",
     readTime: "7 MIN READ",
+    getTheLook: true,
+    lookbookItems: [
+      { label: "Tailored coat", topPct: 24, leftPct: 12 },
+      { label: "Signet chain", topPct: 56, leftPct: 72 },
+    ],
     deal: {
       id: "d3",
       brand: "ARCHIVE ATELIER",
@@ -95,6 +105,21 @@ export const mockArticles: Article[] = [
     body: "The most forward-thinking collectors no longer buy to possess. They curate access.",
     author: "CYRUS VALE",
     readTime: "8 MIN READ",
+    partnerUrl: "https://www.atmad.example/collective/access",
+    videoUrl:
+      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+  },
+  {
+    id: "6",
+    type: "deal_embedded",
+    coverImage: "https://images.unsplash.com/photo-1618354691373-d851c5c3a990?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=800",
+    category: "MEMBER ACCESS",
+    headline: "Maison Noir — Private Salon",
+    subheadline: "Reserved entry for Obsidian tier",
+    body: "Your portal to the spring salon opens here. Complete the brief member check-in on the partner site.",
+    author: "ATMAD CURATION",
+    readTime: "2 MIN READ",
+    partnerUrl: "https://www.atmad.example/partners/maison-noir/salon",
   },
 ];
 
@@ -215,7 +240,7 @@ export const mockWallet: WalletCard[] = [
 export const COVER = {
   image:
     "https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=1200",
-  issueLabel: "Issue 01",
+  discoverLabel: "Discover · Vol. 01",
   headline: "The Architecture of Influence",
   subheadline:
     "Silence, restraint, and the new theater of luxury — curated for the obsidian few.",

@@ -2,11 +2,11 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { ImageBackground, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import type { IssueStackParamList } from "../../navigation/types";
+import type { DiscoverStackParamList } from "../../navigation/types";
 import { COVER } from "../../data/mock";
 import { colors, fonts, radius, spacing } from "../../theme/tokens";
 
-type Nav = NativeStackNavigationProp<IssueStackParamList, "Cover">;
+type Nav = NativeStackNavigationProp<DiscoverStackParamList, "Cover">;
 
 export function CoverScreen() {
   const nav = useNavigation<Nav>();
@@ -28,7 +28,7 @@ export function CoverScreen() {
               fontFamily: fonts.body, fontSize: 9, letterSpacing: 4,
               color: "rgba(255,255,255,0.7)", textTransform: "uppercase",
             }}>
-              ATMAD · {COVER.issueLabel}
+              ATMAD · {COVER.discoverLabel}
             </Text>
           </View>
 
@@ -61,7 +61,7 @@ export function CoverScreen() {
                 fontFamily: fonts.bodyMedium, fontSize: 11, letterSpacing: 3,
                 color: "#FFFFFF", textTransform: "uppercase",
               }}>
-                Open the Issue →
+                Open Discover →
               </Text>
             </Pressable>
           </View>

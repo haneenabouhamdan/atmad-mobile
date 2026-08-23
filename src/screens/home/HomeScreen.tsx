@@ -19,7 +19,8 @@ import { useRegionalPreferences } from "../../regional/RegionalPreferencesContex
 import { trackJourney } from "../../analytics/journeyContracts";
 import { fetchArticles } from "../../data/contentService";
 import type { Article } from "../../data/types";
-import { GlobalRegionBar } from "../../components/GlobalRegionBar";
+import type { Country } from "../../data/countries";
+import { CountryCodePicker } from "../../components/CountryCodePicker";
 import { colors, fonts, radius, spacing } from "../../theme/tokens";
 import { computeHomeRecommendations } from "../../intelligence/recommendations";
 import {
@@ -149,7 +150,6 @@ export function HomeScreen() {
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colors.background }}>
-      <GlobalRegionBar />
       {banner ? (
         <Pressable
           onPress={dismissBanner}
@@ -181,21 +181,35 @@ export function HomeScreen() {
           alignItems: "center",
           justifyContent: "space-between",
           marginTop: spacing.md,
+          gap: spacing.sm,
         }}>
-          <View>
+          <View style={{ flex: 1, minWidth: 0, paddingRight: spacing.xs }}>
             <Text style={{
               fontFamily: fonts.body, fontSize: 9, letterSpacing: 3,
               color: colors.textTertiary, textTransform: "uppercase",
             }}>
               ATMAD
             </Text>
-            <Text style={{
-              marginTop: 4, fontFamily: fonts.heading, fontSize: 15, color: colors.foreground,
-            }}>
+            <Text
+              numberOfLines={2}
+              style={{
+                marginTop: 4, fontFamily: fonts.heading, fontSize: 15, color: colors.foreground,
+              }}
+            >
               {greeting}, {greetingName}.
             </Text>
           </View>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs, flexShrink: 0 }}>
+            <View style={{ maxWidth: 96 }}>
+              <CountryCodePicker
+                selected={rp.country}
+                summary="market"
+                placement="headerRight"
+                onSelect={(c: Country) => {
+                  void rp.setCountryIso(c.code);
+                }}
+              />
+            </View>
             <Pressable
               onPress={() => nav.navigate("Notifications")}
               hitSlop={12}
@@ -313,9 +327,9 @@ export function HomeScreen() {
           </View>
         </View>
 
-        {/* Today’s issue hero */}
+        {/* Today in Discover */}
         <Pressable
-          onPress={() => nav.navigate("IssueTab", { screen: "Cover" })}
+          onPress={() => nav.navigate("DiscoverTab", { screen: "Feed" })}
           style={{ marginTop: spacing.xl }}
         >
           <View style={{
@@ -328,7 +342,7 @@ export function HomeScreen() {
               fontFamily: fonts.body, fontSize: 9, letterSpacing: 3,
               color: colors.textTertiary, textTransform: "uppercase",
             }}>
-              Today’s issue
+              Today in Discover
             </Text>
             <Text style={{
               fontFamily: fonts.body, fontSize: 8, letterSpacing: 2,
@@ -372,7 +386,7 @@ export function HomeScreen() {
         </Pressable>
 
         <Pressable
-          onPress={() => nav.navigate("IssueTab", { screen: "Feed" })}
+          onPress={() => nav.navigate("DiscoverTab", { screen: "Feed" })}
           style={({ pressed }) => ({
             marginTop: spacing.md,
             paddingVertical: spacing.md,

@@ -1,31 +1,50 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Dimensions,
   FlatList,
   Image,
   Pressable,
   RefreshControl,
+  ScrollView,
   Text,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import type { CompositeNavigationProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { IssueStackParamList } from "../../navigation/types";
+import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+import type { DiscoverStackParamList, MainTabParamList } from "../../navigation/types";
 import { fetchArticles } from "../../data/contentService";
 import type { Article } from "../../data/types";
+import { buildDiscoverFeed } from "../../data/discoverFeed";
 import { env } from "../../lib/env";
 import { colors, fonts, radius, spacing } from "../../theme/tokens";
-import { useHomeIntelligenceStore } from "../../store/homeIntelligenceStore";
+import { DiscoverStoryEngagementBar } from "../../components/DiscoverStoryEngagementBar";
+import { DiscoverStoryCommentsSheet } from "../../components/DiscoverStoryCommentsSheet";
+import { EditorialVideoPlayer } from "../../components/EditorialVideoPlayer";
 
-type Nav = NativeStackNavigationProp<IssueStackParamList, "Feed">;
+type Nav = CompositeNavigationProp<
+  NativeStackNavigationProp<DiscoverStackParamList, "Feed">,
+  BottomTabNavigationProp<MainTabParamList>
+>;
+
+const articleCardOutline = {
+  borderWidth: 1,
+  borderColor: colors.border,
+  borderRadius: radius.lg,
+  backgroundColor: colors.card,
+  overflow: "hidden" as const,
+};
 
 export function MagazineFeedScreen() {
   const nav = useNavigation<Nav>();
-  const followedSlugs = useHomeIntelligenceStore((s) => s.followedInfluencerSlugs);
   const [articles, setArticles] = useState<Article[]>([]);
-  const [loading, setLoading]   = useState(true);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [commentStory, setCommentStory] = useState<{ id: string; headline: string } | null>(null);
 
   async function load() {
     const rows = await fetchArticles();
@@ -34,31 +53,58 @@ export function MagazineFeedScreen() {
     setRefreshing(false);
   }
 
-  const sortedArticles = useMemo(() => {
-    if (followedSlugs.length === 0) return articles;
-    const followed = new Set(followedSlugs);
-    return [...articles].sort((a, b) => {
-      const pa = a.influencerSlug && followed.has(a.influencerSlug) ? 0 : 1;
-      const pb = b.influencerSlug && followed.has(b.influencerSlug) ? 0 : 1;
-      return pa - pb;
-    });
-  }, [articles, followedSlugs]);
+  const feedRows = useMemo(() => buildDiscoverFeed(articles), [articles]);
 
-  useEffect(() => { load(); }, []);
+  const mustReadCardWidth = useMemo(() => {
+    const w = Dimensions.get("window").width;
+    return Math.min(200, (w - spacing.xl * 2 - spacing.md * 2) / 2.05);
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const openArticle = useCallback(
+    (id: string) => {
+      nav.navigate("Article", { id });
+    },
+    [nav],
+  );
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colors.background }}>
-      <View style={{ paddingHorizontal: spacing.xl, paddingTop: spacing.md, paddingBottom: spacing.lg }}>
-        <Text style={{
-          fontFamily: fonts.body, fontSize: 9, letterSpacing: 3,
-          color: colors.textTertiary, textTransform: "uppercase",
-        }}>
-          The Issue · This Week
+      <View style={{ paddingHorizontal: spacing.xl, paddingTop: spacing.md, paddingBottom: spacing.sm }}>
+        <Text
+          style={{
+            fontFamily: fonts.body,
+            fontSize: 9,
+            letterSpacing: 3,
+            color: colors.textTertiary,
+            textTransform: "uppercase",
+          }}
+        >
+          Discover
         </Text>
-        <Text style={{
-          marginTop: 4, fontFamily: fonts.heading, fontSize: 28, color: colors.foreground,
-        }}>
-          Magazine Feed
+        <Text
+          style={{
+            marginTop: 4,
+            fontFamily: fonts.heading,
+            fontSize: 28,
+            color: colors.foreground,
+          }}
+        >
+          Magazine
+        </Text>
+        <Text
+          style={{
+            marginTop: spacing.xs,
+            fontFamily: fonts.bodyLight,
+            fontSize: 12,
+            lineHeight: 18,
+            color: colors.textSecondary,
+          }}
+        >
+          Stories, film, and editorial — curated only.
         </Text>
       </View>
 
@@ -68,129 +114,366 @@ export function MagazineFeedScreen() {
         </View>
       ) : (
         <FlatList
-          data={sortedArticles}
-          keyExtractor={(a) => a.id}
-          contentContainerStyle={{ padding: spacing.xl, paddingTop: 0, paddingBottom: 120 }}
-          ItemSeparatorComponent={() => <View style={{ height: spacing.xl }} />}
+          data={feedRows}
+          keyExtractor={(r) => r.id}
+          removeClippedSubviews={false}
+          contentContainerStyle={{
+            paddingHorizontal: spacing.xl,
+            paddingBottom: 120,
+            paddingTop: spacing.sm,
+          }}
+          ItemSeparatorComponent={() => <View style={{ height: spacing.lg }} />}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={() => { setRefreshing(true); load(); }}
+              onRefresh={() => {
+                setRefreshing(true);
+                load();
+              }}
               tintColor={colors.foreground}
             />
           }
           ListHeaderComponent={
             <View style={{ marginBottom: spacing.lg, gap: spacing.md }}>
-              {followedSlugs.length > 0 ? (
-                <View style={{
-                  paddingVertical: spacing.sm,
-                  paddingHorizontal: spacing.md,
-                  borderRadius: radius.pill,
-                  alignSelf: "flex-start",
-                  backgroundColor: "rgba(10,10,10,0.06)",
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                }}>
-                  <Text style={{
-                    fontFamily: fonts.body, fontSize: 9, letterSpacing: 2,
-                    color: colors.textSecondary, textTransform: "uppercase",
-                  }}>
-                    From voices you follow
-                  </Text>
-                  <Text style={{
-                    marginTop: 4,
-                    fontFamily: fonts.bodyLight, fontSize: 10,
-                    color: colors.textTertiary, lineHeight: 15,
-                  }}>
-                    Linked stories from those creators are shown first.
-                  </Text>
-                </View>
-              ) : null}
               {!env.IS_CONFIGURED ? (
-                <View style={{
-                  padding: spacing.md,
-                  borderRadius: radius.md,
-                  backgroundColor: colors.card,
-                  borderWidth: 1, borderColor: colors.border,
-                }}>
-                  <Text style={{
-                    fontFamily: fonts.bodyLight, fontSize: 11,
-                    color: colors.textSecondary, lineHeight: 16,
-                  }}>
-                    Showing sample issue. Connect Sanity to publish live content.
+                <View
+                  style={{
+                    padding: spacing.md,
+                    borderRadius: radius.md,
+                    backgroundColor: colors.card,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: fonts.bodyLight,
+                      fontSize: 11,
+                      color: colors.textSecondary,
+                      lineHeight: 16,
+                    }}
+                  >
+                    Sample Discover magazine. Connect Sanity for live editorial.
                   </Text>
                 </View>
               ) : null}
             </View>
           }
-          renderItem={({ item }) => (
-            <Pressable
-              onPress={() => nav.navigate("Article", { id: item.id })}
-              style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-            >
-              {item.coverImage ? (
-                <Image
-                  source={{ uri: item.coverImage }}
+          renderItem={({ item }) => {
+            if (item.kind === "section") {
+              return (
+                <Text
                   style={{
-                    width: "100%", aspectRatio: 1.2,
-                    borderRadius: radius.md, backgroundColor: colors.card,
+                    fontFamily: fonts.body,
+                    fontSize: 9,
+                    letterSpacing: 3,
+                    color: colors.textTertiary,
+                    textTransform: "uppercase",
+                    marginTop: spacing.xs,
                   }}
-                />
-              ) : null}
-              <Text style={{
-                marginTop: spacing.md,
-                fontFamily: fonts.body, fontSize: 9, letterSpacing: 3,
-                color: colors.textTertiary, textTransform: "uppercase",
-              }}>
-                {item.category}
-              </Text>
-              <Text style={{
-                marginTop: 4, fontFamily: fonts.heading, fontSize: 22, lineHeight: 28,
-                color: colors.foreground,
-              }}>
-                {item.headline}
-              </Text>
-              {item.subheadline && (
-                <Text style={{
-                  marginTop: 4,
-                  fontFamily: fonts.bodyLight, fontSize: 13, lineHeight: 18,
-                  color: colors.textSecondary,
-                }}>
-                  {item.subheadline}
+                >
+                  {item.title}
                 </Text>
-              )}
-              <Text style={{
-                marginTop: spacing.sm,
-                fontFamily: fonts.body, fontSize: 10, letterSpacing: 2,
-                color: colors.textTertiary, textTransform: "uppercase",
-              }}>
-                {item.author} · {item.readTime ?? ""}
-              </Text>
-              {item.deal && (
-                <View style={{
-                  marginTop: spacing.md, padding: spacing.md,
-                  backgroundColor: colors.card,
-                  borderRadius: radius.md, borderWidth: 1, borderColor: colors.border,
-                }}>
-                  <Text style={{
-                    fontFamily: fonts.bodyMedium, fontSize: 10, letterSpacing: 2,
-                    color: colors.foreground, textTransform: "uppercase",
-                  }}>
-                    {item.deal.brand} — Member Offer
-                  </Text>
-                  <Text style={{
-                    marginTop: 2,
-                    fontFamily: fonts.bodyLight, fontSize: 11,
-                    color: colors.textSecondary,
-                  }}>
-                    {item.deal.discount} · {item.deal.points} pts
-                  </Text>
+              );
+            }
+            if (item.kind === "mustReadRail") {
+              return (
+                <View style={{ marginHorizontal: -spacing.xl }}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{
+                      paddingHorizontal: spacing.xl,
+                      gap: spacing.md,
+                      paddingBottom: 2,
+                    }}
+                  >
+                    {item.articles.map((article) => (
+                      <View
+                        key={article.id}
+                        style={{ width: mustReadCardWidth, ...articleCardOutline }}
+                      >
+                        <Pressable
+                          onPress={() => openArticle(article.id)}
+                          style={({ pressed }) => ({ opacity: pressed ? 0.88 : 1 })}
+                        >
+                          {article.coverImage ? (
+                            <Image
+                              source={{ uri: article.coverImage }}
+                              style={{
+                                width: "100%",
+                                aspectRatio: 3 / 4,
+                                backgroundColor: colors.muted,
+                              }}
+                            />
+                          ) : null}
+                          <View style={{ padding: spacing.md }}>
+                            <Text
+                              numberOfLines={3}
+                              style={{
+                                fontFamily: fonts.heading,
+                                fontSize: 15,
+                                lineHeight: 19,
+                                color: colors.foreground,
+                              }}
+                            >
+                              {article.headline}
+                            </Text>
+                            <Text
+                              style={{
+                                marginTop: spacing.sm,
+                                fontFamily: fonts.body,
+                                fontSize: 9,
+                                letterSpacing: 1.5,
+                                color: colors.textTertiary,
+                                textTransform: "uppercase",
+                              }}
+                              numberOfLines={1}
+                            >
+                              {article.author} · {article.readTime ?? ""}
+                            </Text>
+                          </View>
+                        </Pressable>
+                      </View>
+                    ))}
+                  </ScrollView>
                 </View>
-              )}
-            </Pressable>
-          )}
+              );
+            }
+            if (item.kind === "article") {
+              const { article, layout } = item;
+              if (layout === "hero") {
+                return (
+                  <View style={articleCardOutline}>
+                    <Pressable
+                      onPress={() => openArticle(article.id)}
+                      style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}
+                    >
+                      {article.coverImage ? (
+                        <Image
+                          source={{ uri: article.coverImage }}
+                          style={{
+                            width: "100%",
+                            aspectRatio: 1.12,
+                            backgroundColor: colors.muted,
+                          }}
+                        />
+                      ) : null}
+                      <View style={{ padding: spacing.md }}>
+                        <Text
+                          style={{
+                            fontFamily: fonts.body,
+                            fontSize: 9,
+                            letterSpacing: 3,
+                            color: colors.textTertiary,
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          {article.category}
+                        </Text>
+                        <Text
+                          style={{
+                            marginTop: spacing.xs,
+                            fontFamily: fonts.heading,
+                            fontSize: 26,
+                            lineHeight: 32,
+                            color: colors.foreground,
+                          }}
+                        >
+                          {article.headline}
+                        </Text>
+                        {article.subheadline ? (
+                          <Text
+                            style={{
+                              marginTop: spacing.sm,
+                              fontFamily: fonts.bodyLight,
+                              fontSize: 14,
+                              lineHeight: 20,
+                              color: colors.textSecondary,
+                            }}
+                          >
+                            {article.subheadline}
+                          </Text>
+                        ) : null}
+                        <Text
+                          style={{
+                            marginTop: spacing.md,
+                            fontFamily: fonts.body,
+                            fontSize: 10,
+                            letterSpacing: 2,
+                            color: colors.textTertiary,
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          By {article.author}
+                          {article.readTime ? ` · ${article.readTime}` : ""}
+                        </Text>
+                      </View>
+                    </Pressable>
+                    <DiscoverStoryEngagementBar
+                      articleId={article.id}
+                      onOpenComments={() =>
+                        setCommentStory({ id: article.id, headline: article.headline })
+                      }
+                    />
+                  </View>
+                );
+              }
+              return (
+                <View style={articleCardOutline}>
+                  <Pressable
+                    onPress={() => openArticle(article.id)}
+                    style={({ pressed }) => ({ opacity: pressed ? 0.88 : 1 })}
+                  >
+                    {article.coverImage ? (
+                      <Image
+                        source={{ uri: article.coverImage }}
+                        style={{
+                          width: "100%",
+                          aspectRatio: 1.25,
+                          backgroundColor: colors.muted,
+                        }}
+                      />
+                    ) : null}
+                    <View style={{ padding: spacing.md }}>
+                      <Text
+                        style={{
+                          fontFamily: fonts.body,
+                          fontSize: 9,
+                          letterSpacing: 3,
+                          color: colors.textTertiary,
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {article.category}
+                      </Text>
+                      <Text
+                        style={{
+                          marginTop: 4,
+                          fontFamily: fonts.heading,
+                          fontSize: 22,
+                          lineHeight: 28,
+                          color: colors.foreground,
+                        }}
+                      >
+                        {article.headline}
+                      </Text>
+                      {article.subheadline ? (
+                        <Text
+                          style={{
+                            marginTop: 4,
+                            fontFamily: fonts.bodyLight,
+                            fontSize: 13,
+                            lineHeight: 18,
+                            color: colors.textSecondary,
+                          }}
+                        >
+                          {article.subheadline}
+                        </Text>
+                      ) : null}
+                      <Text
+                        style={{
+                          marginTop: spacing.sm,
+                          fontFamily: fonts.body,
+                          fontSize: 10,
+                          letterSpacing: 2,
+                          color: colors.textTertiary,
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {article.author} · {article.readTime ?? ""}
+                      </Text>
+                    </View>
+                  </Pressable>
+                  <DiscoverStoryEngagementBar
+                    articleId={article.id}
+                    onOpenComments={() =>
+                      setCommentStory({ id: article.id, headline: article.headline })
+                    }
+                  />
+                </View>
+              );
+            }
+            if (item.kind === "video") {
+              const { article } = item;
+              const videoUri = article.videoUrl?.trim() ?? "";
+              return (
+                <View style={articleCardOutline}>
+                  {videoUri ? (
+                    <EditorialVideoPlayer
+                      uri={videoUri}
+                      posterUri={article.coverImage}
+                      aspectRatio={16 / 9}
+                      useNativeControls
+                    />
+                  ) : article.coverImage ? (
+                    <Image
+                      source={{ uri: article.coverImage }}
+                      style={{
+                        width: "100%",
+                        aspectRatio: 16 / 9,
+                        backgroundColor: colors.muted,
+                      }}
+                    />
+                  ) : null}
+                  <Pressable onPress={() => openArticle(article.id)}>
+                    <View style={{ padding: spacing.md }}>
+                      <Text
+                        style={{
+                          fontFamily: fonts.body,
+                          fontSize: 9,
+                          letterSpacing: 3,
+                          color: colors.textTertiary,
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Video · {article.category}
+                      </Text>
+                      <Text
+                        style={{
+                          marginTop: 4,
+                          fontFamily: fonts.heading,
+                          fontSize: 22,
+                          lineHeight: 28,
+                          color: colors.foreground,
+                        }}
+                      >
+                        {article.headline}
+                      </Text>
+                      <Text
+                        style={{
+                          marginTop: spacing.sm,
+                          fontFamily: fonts.body,
+                          fontSize: 10,
+                          letterSpacing: 2,
+                          color: colors.textTertiary,
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Watch in story · {article.readTime ?? ""}
+                      </Text>
+                    </View>
+                  </Pressable>
+                  <DiscoverStoryEngagementBar
+                    articleId={article.id}
+                    onOpenComments={() =>
+                      setCommentStory({ id: article.id, headline: article.headline })
+                    }
+                  />
+                </View>
+              );
+            }
+            return null;
+          }}
         />
       )}
+
+      <DiscoverStoryCommentsSheet
+        visible={commentStory !== null}
+        storyId={commentStory?.id ?? ""}
+        headline={commentStory?.headline ?? ""}
+        onClose={() => setCommentStory(null)}
+      />
     </SafeAreaView>
   );
 }

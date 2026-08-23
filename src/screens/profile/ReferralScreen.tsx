@@ -132,7 +132,7 @@ export function ReferralScreen() {
           <Text style={{ fontFamily: fonts.body, fontSize: 9, letterSpacing: 3, color: colors.textTertiary, textTransform: "uppercase", marginBottom: spacing.sm }}>
             How it works
           </Text>
-          <Step n="01" title="Share your code"  body="Send the code or your link to anyone you'd happily share an issue with." />
+          <Step n="01" title="Share your code"  body="Send the code or your link to anyone you'd happily welcome to Discover." />
           <Step n="02" title="They join ATMAD"   body="They enter your code at sign-up. Both of you get points the moment they verify." />
           <Step n="03" title="Earn each month"   body="When they unlock a monthly tier, you earn a milestone bonus on top." />
         </View>

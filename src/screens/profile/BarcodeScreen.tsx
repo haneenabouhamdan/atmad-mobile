@@ -19,7 +19,7 @@ interface ProductLookup {
  * call an editorial product service or a third-party retail data feed.
  */
 const PRODUCT_TABLE: Record<string, ProductLookup> = {
-  "5012345": { brand: "Maison Atelier", product: "Tonal Wool Coat",     category: "Fashion",    rrp: "AED 4,200", rating: 4.7, note: "Editorial pick — Issue 01." },
+  "5012345": { brand: "Maison Atelier", product: "Tonal Wool Coat",     category: "Fashion",    rrp: "AED 4,200", rating: 4.7, note: "Editorial pick — Discover." },
   "0012345": { brand: "House of Cipher", product: "Carbon Travel Trunk", category: "Travel",     rrp: "AED 9,800", rating: 4.5, note: "Limited release · 320 units." },
   "8901234": { brand: "Norden",          product: "Hifi Ceramic Cup",    category: "Lifestyle",  rrp: "AED   220", rating: 4.6, note: "Daily essential." },
 };

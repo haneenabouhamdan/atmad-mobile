@@ -1,8 +1,33 @@
 import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, CommonActions } from "@react-navigation/native";
 import { colors, fonts, spacing } from "../theme/tokens";
+
+type MinimalBackNav = {
+  canGoBack(): boolean;
+  goBack(): void;
+  getParent(): MinimalBackNav | undefined;
+  dispatch(action: { type: string; payload?: object }): void;
+};
+
+function goBackOrFallback(nav: MinimalBackNav) {
+  if (nav.canGoBack()) {
+    nav.goBack();
+    return;
+  }
+  const parent = nav.getParent();
+  if (parent?.canGoBack?.()) {
+    parent.goBack();
+    return;
+  }
+  nav.dispatch(
+    CommonActions.navigate({
+      name: "DiscoverTab",
+      params: { screen: "Feed" },
+    }),
+  );
+}
 
 /**
  * Standard top bar for any sub-screen reached from a tab root.
@@ -14,11 +39,14 @@ export function ScreenHeader({
   eyebrow,
   rightIcon,
   onRightPress,
+  onBackPress,
 }: {
   title: string;
   eyebrow?: string;
   rightIcon?: React.ComponentProps<typeof Feather>["name"];
   onRightPress?: () => void;
+  /** When set, used instead of default go-back (e.g. custom pop or tab switch). */
+  onBackPress?: () => void;
 }) {
   const nav = useNavigation();
   return (
@@ -28,7 +56,7 @@ export function ScreenHeader({
         paddingHorizontal: spacing.lg, paddingVertical: spacing.sm,
       }}>
         <Pressable
-          onPress={() => nav.goBack()}
+          onPress={() => (onBackPress ? onBackPress() : goBackOrFallback(nav))}
           hitSlop={12}
           style={{ flexDirection: "row", alignItems: "center", gap: 6, minWidth: 64 }}
         >

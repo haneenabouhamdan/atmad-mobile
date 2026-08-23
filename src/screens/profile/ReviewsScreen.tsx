@@ -83,7 +83,7 @@ export function ReviewsScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
         <View style={{ paddingHorizontal: spacing.xl, paddingTop: spacing.lg }}>
           <Text style={{ fontFamily: fonts.body, fontSize: 9, letterSpacing: 3, color: colors.textTertiary, textTransform: "uppercase" }}>
-            Curator-vetted · Issue 01
+            Curator-vetted · Discover
           </Text>
           <Text style={{ marginTop: 4, fontFamily: fonts.heading, fontSize: 24, color: colors.foreground }}>
             What we'd actually buy

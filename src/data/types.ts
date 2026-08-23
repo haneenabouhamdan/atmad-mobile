@@ -15,6 +15,17 @@ export interface Deal {
   affiliateUrl?: string;
 }
 
+/** Shoppable hotspot on the article hero (editorial cover / video area). */
+export interface ArticleLookbookItem {
+  label: string;
+  /** 0–100 from top edge of hero. */
+  topPct: number;
+  /** 0–100 from left edge of hero. */
+  leftPct: number;
+  /** When set, tap opens this listing in Discover. */
+  listingId?: string;
+}
+
 export interface Article {
   id: string;
   type: "editorial" | "deal_embedded" | "spread";
@@ -28,8 +39,22 @@ export interface Article {
   /** Sanity `influencer` reference — used to prioritize the feed for followed voices. */
   influencerSlug?: string;
   deal?: Deal;
+  /** Partner URL for Explore “Activate” tiles (editorial activation or `deal_embedded` fallback). */
+  partnerUrl?: string;
   /** Optional listing id deep-linked from the cover image (Sanity listing._id). */
   linkedListingId?: string;
+  /** Tagged pieces on the hero; each renders a small floating chip at the given position. */
+  lookbookItems?: ArticleLookbookItem[];
+  /**
+   * When true, shows a default on-hero CTA on the article screen (Get the look) if there are no `lookbookItems`.
+   * `type: "spread"` also enables that default chip when no items are defined.
+   */
+  getTheLook?: boolean;
+  /**
+   * When set, Discover renders a video-style card (poster = coverImage).
+   * Playback is opened from the article; the feed does not embed the player.
+   */
+  videoUrl?: string;
 }
 
 export interface WalletCard {

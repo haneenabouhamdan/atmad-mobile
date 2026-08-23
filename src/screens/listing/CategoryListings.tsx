@@ -31,7 +31,7 @@ const CATEGORY_TITLES: Record<ListingCategory, string> = {
 };
 
 const ACTION_LABELS: Record<string, string> = {
-  redirect_link: "Get the look",
+  redirect_link: "Explore",
   copy_code:     "Copy code",
   qr_code:       "QR code",
   pin_code:      "PIN",

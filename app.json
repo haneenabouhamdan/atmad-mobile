@@ -47,7 +47,8 @@
       "expo-camera",
       "expo-font",
       "expo-notifications",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-video"
     ],
     "extra": {
       "eas": {
