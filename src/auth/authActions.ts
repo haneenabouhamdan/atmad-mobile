@@ -284,6 +284,55 @@ export async function signInWithEmailPassword(email: string, password: string) {
   return { success: true, session: data.session };
 }
 
+export async function requestPasswordReset(email: string) {
+  const trimmed = email.trim().toLowerCase();
+  if (!EMAIL_RE.test(trimmed)) return { success: false, error: "Invalid email address" };
+
+  // OTP-only recovery — no deep-link redirect required. Supabase emails the 6-digit code
+  // (ensure the Recovery template includes {{ .Token }}).
+  const { error } = await supabase.auth.resetPasswordForEmail(trimmed);
+  if (error) {
+    const msg = error.message ?? "Could not send code";
+    // Supabase Auth returns this when SMTP / email provider is misconfigured (project-side).
+    if (/error sending recovery email/i.test(msg) || /unexpected_failure/i.test(msg)) {
+      return {
+        success: false as const,
+        error:
+          "Couldn’t send the reset code. Check Supabase → Authentication → Emails (SMTP / rate limits) — this is a project email delivery issue, not the app.",
+      };
+    }
+    return { success: false as const, error: msg };
+  }
+  return { success: true as const };
+}
+
+/** Verify the recovery OTP from email; session becomes PASSWORD_RECOVERY → show reset UI. */
+export async function verifyRecoveryOtp(email: string, token: string) {
+  const trimmed = email.trim().toLowerCase();
+  const cleaned = token.replace(/\D/g, "");
+  if (!EMAIL_RE.test(trimmed)) return { success: false, error: "Invalid email address" };
+  if (cleaned.length < 4 || cleaned.length > 8) {
+    return { success: false, error: "Enter the code from your email" };
+  }
+
+  const { data, error } = await supabase.auth.verifyOtp({
+    email: trimmed,
+    token: cleaned,
+    type: "recovery",
+  });
+  if (error) return { success: false as const, error: error.message };
+  return { success: true as const, session: data.session };
+}
+
+export async function updatePassword(newPassword: string) {
+  if (newPassword.length < 8) {
+    return { success: false, error: "Password must be at least 8 characters" };
+  }
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) return { success: false as const, error: error.message };
+  return { success: true as const };
+}
+
 /** Google or Apple OAuth via PKCE redirect; configure providers in Supabase Auth. */
 export async function signInWithOAuth(provider: "google" | "apple") {
   const redirectTo = getAuthRedirectUriForSupabase();

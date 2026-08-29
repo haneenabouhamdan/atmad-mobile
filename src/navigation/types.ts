@@ -4,6 +4,7 @@ export type AuthStackParamList = {
   Splash: undefined;
   Welcome: undefined;
   EmailPassword: { mode?: "signup" | "login" };
+  ForgotPassword: { email?: string };
 };
 
 export type MainTabParamList = {

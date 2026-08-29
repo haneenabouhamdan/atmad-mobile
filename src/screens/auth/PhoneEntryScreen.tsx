@@ -11,7 +11,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
-import { Ionicons } from "@expo/vector-icons";
 import { CountryCodePicker } from "../../components/CountryCodePicker";
 import type { Country } from "../../data/countries";
 import { DEFAULT_COUNTRY } from "../../data/countries";
@@ -27,6 +26,7 @@ import {
   validateNationalPhoneDigits,
 } from "../../validation/phoneNationalDigits";
 import { authColumnStyle } from "./authLayout";
+import { AuthBackButton } from "./AuthBackButton";
 import { useAuth } from "../../auth/AuthProvider";
 import { colors, fonts, radius, spacing } from "../../theme/tokens";
 
@@ -112,23 +112,7 @@ export function PhoneEntryScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
       >
-        <View style={{ paddingHorizontal: spacing.xl, paddingBottom: spacing.sm }}>
-          <Pressable
-            onPress={() => nav.goBack()}
-            hitSlop={12}
-            accessibilityRole="button"
-            accessibilityLabel="Back"
-            style={({ pressed }) => ({
-              alignSelf: "flex-start",
-              paddingVertical: spacing.xs,
-              paddingHorizontal: spacing.xs,
-              marginLeft: -spacing.xs,
-              opacity: pressed ? 0.65 : 1,
-            })}
-          >
-            <Ionicons name="chevron-back" size={28} color={colors.foreground} />
-          </Pressable>
-        </View>
+        <AuthBackButton onPress={() => nav.goBack()} />
 
         <ScrollView
           contentContainerStyle={{

@@ -6,11 +6,16 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { signInWithEmailPassword, signUpWithEmailPassword } from "../../auth/authActions";
 import { env } from "../../lib/env";
 import { trackJourney } from "../../analytics/journeyContracts";
+import type { AuthStackParamList } from "../../navigation/types";
+import { PasswordField } from "./PasswordField";
 import { colors, fonts, radius, spacing } from "../../theme/tokens";
 
+/** Email sign-up / log-in form (password visibility lives in PasswordField). */
 function isDuplicateEmailSignup(msg: string, code?: string): boolean {
   if (code === "user_already_exists" || code === "email_exists") return true;
   const m = msg.toLowerCase();
@@ -51,11 +56,14 @@ export function EmailAuthForm({
   variant = "standalone",
   onModeChange,
 }: Props) {
+  const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
   const [mode, setMode] = useState<EmailAuthMode>(initialMode);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -223,29 +231,44 @@ export function EmailAuthForm({
       />
 
       <View style={{ height: spacing.md }} />
-      <TextInput
+      <PasswordField
         value={password}
         onChangeText={setPassword}
-        secureTextEntry
         placeholder="Password · min 8 characters"
-        placeholderTextColor={colors.textFaint}
         autoComplete={mode === "signup" ? "password-new" : "password"}
         textContentType={mode === "signup" ? "newPassword" : "password"}
-        style={inputStyle}
+        visible={showPassword}
+        onToggleVisible={() => setShowPassword((v) => !v)}
       />
+
+      {mode === "login" ? (
+        <Pressable
+          onPress={() => navigation.navigate("ForgotPassword", { email: email.trim() })}
+          hitSlop={8}
+          style={{ marginTop: spacing.sm, alignSelf: "flex-end" }}
+        >
+          <Text style={{
+            fontFamily: fonts.body,
+            fontSize: 11,
+            color: colors.textSecondary,
+            textDecorationLine: "underline",
+          }}>
+            Forgot password?
+          </Text>
+        </Pressable>
+      ) : null}
 
       {mode === "signup" ? (
         <>
           <View style={{ height: spacing.md }} />
-          <TextInput
+          <PasswordField
             value={confirmPassword}
             onChangeText={setConfirmPassword}
-            secureTextEntry
             placeholder="Confirm password"
-            placeholderTextColor={colors.textFaint}
             autoComplete="password-new"
             textContentType="newPassword"
-            style={inputStyle}
+            visible={showConfirmPassword}
+            onToggleVisible={() => setShowConfirmPassword((v) => !v)}
           />
         </>
       ) : null}

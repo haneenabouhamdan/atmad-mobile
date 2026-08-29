@@ -7,6 +7,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -18,6 +19,7 @@ import {
   type OtpChannel,
 } from "../../auth/authActions";
 import { authColumnStyle } from "./authLayout";
+import { AuthBackButton } from "./AuthBackButton";
 import { useAuth } from "../../auth/AuthProvider";
 import { colors, fonts, radius, spacing } from "../../theme/tokens";
 
@@ -93,16 +95,18 @@ export function OtpVerifyScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={{ flex: 1, backgroundColor: colors.background }}
-    >
-      <View style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        paddingHorizontal: spacing.xl,
-      }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colors.background }}>
+      <AuthBackButton onPress={() => nav.goBack()} />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={{ flex: 1 }}
+      >
+        <View style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          paddingHorizontal: spacing.xl,
+        }}>
         <View style={authColumnStyle}>
         <Text style={{
           fontFamily: fonts.heading, fontSize: 22, color: colors.foreground,
@@ -252,5 +256,6 @@ export function OtpVerifyScreen() {
         </View>
       </View>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }

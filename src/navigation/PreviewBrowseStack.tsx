@@ -1,6 +1,7 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { WelcomeScreen } from "../screens/auth/WelcomeScreen";
 import { EmailPasswordScreen } from "../screens/auth/EmailPasswordScreen";
+import { ForgotPasswordScreen } from "../screens/auth/ForgotPasswordScreen";
 import { MainTabs } from "./MainTabs";
 import { RegionalPreferencesProvider } from "../regional/RegionalPreferencesContext";
 import type { PreviewBrowseStackParamList } from "./previewBrowseNavigation";
@@ -23,6 +24,7 @@ export function PreviewBrowseStackNavigator() {
       </Stack.Screen>
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="EmailPassword" component={EmailPasswordScreen} />
+      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
     </Stack.Navigator>
   );
 }

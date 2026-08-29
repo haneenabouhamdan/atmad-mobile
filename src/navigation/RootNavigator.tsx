@@ -3,6 +3,7 @@ import { useAuth } from "../auth/AuthProvider";
 import { isSyntheticEmail } from "../auth/authActions";
 import { AuthStack } from "./AuthStack";
 import { MainTabs } from "./MainTabs";
+import { ResetPasswordScreen } from "../screens/auth/ResetPasswordScreen";
 import { OnboardingScreen } from "../screens/auth/OnboardingScreen";
 import { EmailVerifyScreen } from "../screens/auth/EmailVerifyScreen";
 import { LockScreen } from "../screens/auth/LockScreen";
@@ -28,7 +29,7 @@ const navTheme = {
 };
 
 export function RootNavigator() {
-  const { loading, session, user, profile, locked } = useAuth();
+  const { loading, session, user, profile, locked, passwordRecovery } = useAuth();
 
   if (loading) {
     return (
@@ -62,6 +63,8 @@ export function RootNavigator() {
         <AuthStack />
       ) : locked ? (
         <LockScreen />
+      ) : passwordRecovery ? (
+        <ResetPasswordScreen />
       ) : needsEmailVerify ? (
         <EmailVerifyScreen />
       ) : needsMandatoryOnboarding(profile) ? (
