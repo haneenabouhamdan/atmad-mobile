@@ -75,6 +75,9 @@ interface AuthContextValue {
   signOut: () => Promise<void>;
   /** Reload `profile` from Supabase; returns the row or null on error / no session. */
   refreshProfile: () => Promise<Profile | null>;
+  /** True after the user opens a password-recovery link — show set-new-password UI. */
+  passwordRecovery: boolean;
+  clearPasswordRecovery: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -84,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [locked, setLocked]   = useState(false);
+  const [passwordRecovery, setPasswordRecovery] = useState(false);
 
   const loadProfile = useCallback(async (userId: string): Promise<Profile | null> => {
     const { data, error } = await supabase
@@ -160,10 +164,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       // SIGNED_IN, USER_UPDATED, TOKEN_REFRESHED — the user is actively
       // interacting with the app, no biometric prompt needed.
-      if (evt === "SIGNED_IN" || evt === "USER_UPDATED" || evt === "TOKEN_REFRESHED") {
+      if (evt === "PASSWORD_RECOVERY") {
+        setPasswordRecovery(true);
+        setLocked(false);
+      } else if (evt === "USER_UPDATED") {
+        setPasswordRecovery(false);
+        setLocked(false);
+      } else if (evt === "SIGNED_IN" || evt === "TOKEN_REFRESHED") {
         setLocked(false);
       } else if (evt === "SIGNED_OUT") {
         setLocked(false);
+        setPasswordRecovery(false);
       }
     });
 
@@ -188,8 +199,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLocked(false);
       },
       refreshProfile,
+      passwordRecovery,
+      clearPasswordRecovery: () => setPasswordRecovery(false),
     }),
-    [loading, session, profile, locked, refreshProfile],
+    [loading, session, profile, locked, refreshProfile, passwordRecovery],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

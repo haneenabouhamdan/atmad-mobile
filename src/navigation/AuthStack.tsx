@@ -3,6 +3,7 @@ import type { AuthStackParamList } from "./types";
 import { SplashScreen } from "../screens/auth/SplashScreen";
 import { WelcomeScreen } from "../screens/auth/WelcomeScreen";
 import { EmailPasswordScreen } from "../screens/auth/EmailPasswordScreen";
+import { ForgotPasswordScreen } from "../screens/auth/ForgotPasswordScreen";
 import { env } from "../lib/env";
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -16,6 +17,7 @@ export function AuthStack() {
       <Stack.Screen name="Splash"        component={SplashScreen}        />
       <Stack.Screen name="Welcome"       component={WelcomeScreen}       />
       <Stack.Screen name="EmailPassword" component={EmailPasswordScreen} />
+      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
     </Stack.Navigator>
   );
 }
